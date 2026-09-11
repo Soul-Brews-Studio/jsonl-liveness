@@ -1,0 +1,51 @@
+@import "tailwindcss";
+@source "./**/*.{ts,tsx}";
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-code: var(--code);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
+}
+:root {
+  color-scheme:dark;
+  --canvas:#101316;--surface:#141a20;--panel:#1c242c;--code:#10161c;
+  --ink:#e7eaee;--muted:#aab7c5;--line:#3c4b59;--accent:#f3ad74;--accent-ink:#21150b;
+  --selected:#293d4e;--danger:#ffb2b2;--hot:#ffbb82;--warm:#ead188;--cool:#9accf1;
+  font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+:root[data-theme=vangogh] {
+  --canvas:#101d3b;--surface:#172a50;--panel:#203b68;--code:#10213e;
+  --ink:#fff1d3;--muted:#becde4;--line:#526d94;--accent:#f5ce63;--accent-ink:#27200d;
+  --selected:#304f79;--danger:#ffb9a7;--hot:#f8cb68;--warm:#eedd9c;--cool:#a6cfee;
+}
+@layer base {
+  body {@apply m-0 bg-canvas text-ink antialiased;}
+  button, input, select {font:inherit;}
+  button {@apply cursor-pointer rounded-md border border-line bg-panel px-3 py-2 text-[13px] text-ink;}
+  button:hover {background:var(--selected);}
+  button:disabled {@apply cursor-not-allowed opacity-50;}
+  button[aria-pressed=true] {border-color:var(--accent);color:var(--accent);}
+  input,select {@apply block w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm text-ink;}
+  input {@apply mt-2;}
+  input::placeholder {color:var(--muted);}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible {outline:2px solid var(--accent);outline-offset:3px;}
+  [hidden] {display:none!important;}
+  ::selection {background:var(--accent);color:var(--accent-ink);}
+  input {caret-color:var(--accent);}
+}
+@layer components {
+  .primary {background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;}
+  .primary:hover {filter:brightness(1.08);background:var(--accent);}
+  .filter-button {padding:6px 8px;background:transparent;border-color:transparent;}
+  .session-row[data-selected=true] {background:var(--selected);}
+  .session-row:hover {background:var(--panel);}
+  .session-button:hover {color:var(--accent);background:transparent;}
+  .freshness.hot {color:var(--hot);}.freshness.warm {color:var(--warm);}.freshness.cool {color:var(--cool);}.freshness.dead {color:var(--muted);}
+  .metadata dt {color:var(--muted);}.metadata dd {overflow-wrap:anywhere;}
+  #connection[data-state=live] {color:var(--cool);}#connection[data-state=error] {color:var(--danger);}
+}
