@@ -7,7 +7,10 @@ All screenshots and message examples below use synthetic fixtures, not private c
 ## Before you begin
 
 - Install Bun and Node/npm. From this app directory, run `npm ci` and `bun run build:web`.
-- Seed the demonstration: `bun tutorials/fixtures.ts`.
+- Seed the demonstration: `bun tutorials/fixtures.ts`. Repeating this resets only
+  synthetic transcript content, not saved aliases. If already named, identify the
+  row by `tutorial-session` beneath its alias; clear **Display name** and save if
+  you want the initial screenshots to match exactly.
 - In one terminal start the frontend/backend on its normal port:
   `bun run . --serve --root .local/tutorial-projects`.
 - In another terminal start the separately selected demonstration backend:
@@ -22,6 +25,8 @@ All screenshots and message examples below use synthetic fixtures, not private c
    - **Expected:** Backend host becomes `http://127.0.0.1:47883`, two sessions appear,
      and **Recent message** shows readable text even when the last event is `system`.
    - The host is remembered locally and removed from the URL; tokens are not stored.
+   - Enter `tutorial` in **Search**. Both synthetic rows still match their project
+     name. Leave that search in place to verify it survives closing the popup.
 
    ![Original table with recent messages from two synthetic sessions](images/01-table.png)
 
@@ -54,8 +59,6 @@ All screenshots and message examples below use synthetic fixtures, not private c
    - The browser and scanner poll every second; separate scan/client cycles or a slow
      read can add latency. Only complete newline-terminated records appear.
 
-   ![Van Gogh theme and newest-first live messages](images/03-live-append.png)
-
 6. **Cross-check only when needed** — Scroll to **File change check**, then activate
    **Check SHA-256**. Keyboard users can Tab to the button and press Enter.
    - **Expected:** A 64-character hash, **mtimeMs**, and the hash-check time appear.
@@ -75,13 +78,35 @@ All screenshots and message examples below use synthetic fixtures, not private c
 9. **Try the theme** — From the table, choose **Van Gogh · Starry Night** in **Theme**,
    then reopen the session.
    - **Expected:** Blue surfaces and sunflower accents appear without changing the
-     backend or session. **Midnight** restores the original palette.
+     backend or session. Choose **Newest first** and **Jump to latest** again in
+     the reopened popup. **Midnight** restores the original palette.
+
+   ![Van Gogh theme and newest-first live messages](images/03-live-append.png)
 
 ## Verify
 
 A new synthetic message appears automatically, the latest tool opens and its output
 is not clipped by another panel, and Close/Esc returns to the original table.
 `bun test`, `python3 tui-smoke.py`, and `python3 remote-smoke.py` verify core behavior.
+
+### Fresh capture receipt
+
+Replayed on **2026-09-11, 23:07–23:09 Asia/Bangkok**, against the current UI:
+
+| Action | Observed result |
+|---|---|
+| Select backend, search `tutorial` | Two synthetic rows; status **Live · every 1s** |
+| Click session, expand Bash | `bun test` input; latest tool result already open; output visible without inner clipping |
+| Select Newest first, append fixture | New assistant message became the first event without Refresh; Last update advanced to 23:08:54 |
+| Check SHA-256 | 64-character hash shown after explicit activation |
+| Save `Demo live session` | **Name saved. Transcript unchanged.**; ID stayed `tutorial-session` |
+| Back to sessions | Popup closed; search still `tutorial` |
+| Van Gogh, reopen and reload | Theme persisted; `?session=tutorial-session` restored the popup |
+| Esc, browser Back/Forward, Home | Popup/table transitions worked; Home ended at `/` |
+
+All three images were replaced with screenshots from this replay and visually
+checked. The table screenshot uses a narrower window: its detail panel stacks
+below the table; wide desktop windows use equal-height side-by-side panels.
 
 ## Troubleshooting
 
