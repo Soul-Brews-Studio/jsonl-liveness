@@ -2,7 +2,41 @@
 
 Standalone Bun + TypeScript CLI and live web app. The scanner/TUI have no
 third-party runtime dependencies. The browser now uses **React + Tailwind**,
-explicitly requested after the original zero-dependency lab. From this directory:
+explicitly requested after the original zero-dependency lab.
+
+## See it live
+
+Click a session row to open its **live popup**. Complete messages refresh every
+**1 second**; choose **Newest first** or **Jump to latest** to follow activity.
+
+![Live session popup with newest-first messages and Van Gogh theme](tutorials/images/03-live-append.png)
+
+### Quick walkthrough
+
+1. After installing dependencies (see **Backend + web UI + remote TUI** below), start the backend with `bun run . --serve`, then open `http://127.0.0.1:47881/`.
+2. Search the table and click a session to inspect its messages and timestamps.
+3. Expand tool inputs/results; the latest tool opens automatically in the popup.
+4. Use **Check SHA-256** only when needed, or save a **Display name** without changing the transcript.
+5. Use **Close**, **Esc**, or **JSONL Liveness** to return. Search stays in place.
+
+**[Follow the complete browser tutorial →](tutorials/live-sessions.md)**
+Includes safe synthetic fixtures, a live-append command, host selection, and
+verified navigation. All screenshots below use synthetic data, not private chats.
+
+<details>
+<summary>More screenshots: session table and expanded tools</summary>
+
+### Session table with recent messages
+
+![Session table with recent-message previews](tutorials/images/01-table.png)
+
+### Readable tool input and output
+
+![Expanded tool input and output in the live popup](tutorials/images/02-live-popup.png)
+
+</details>
+
+## Run locally
 
 ```sh
 bun run .                  # interactive live TUI; q or Ctrl-C to stop
@@ -319,8 +353,3 @@ can move backward. mtime/size are a cheap change signal, not cryptographic proof
 if timestamps are preserved or content is suspect, request a forced hash check.
 Current caches are in memory and reset on server restart. No database, watcher
 index, or additional source-file writes were introduced.
-
-## Browser walkthrough
-
-See [the captured tutorial](tutorials/live-sessions.md) for safe synthetic fixtures,
-row-to-popup navigation, live append, tool expansion, naming and themes.
