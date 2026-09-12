@@ -4,6 +4,9 @@ Standalone Bun + TypeScript CLI and live web app. The scanner/TUI have no
 third-party runtime dependencies. The browser now uses **React + Tailwind**,
 explicitly requested after the original zero-dependency lab.
 
+[![Deploy frontend to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2FSoul-Brews-Studio%2Fjsonl-liveness)
+
+
 ## Timestamp meanings
 
 **File updated** is the filesystem modification time, not the time a message was
@@ -202,6 +205,14 @@ text; terminal control sequences are neutralized. This is not a prompt composer.
 `python3 tui-smoke.py` runs an isolated PTY test of naming, persistence, pause,
 JSON output, clearing, and terminal restoration. It checks transcript bytes and
 mtime remain unchanged.
+
+## Cloudflare Workers frontend
+
+The UI can be deployed as a static Cloudflare Worker with the one-click **Deploy
+frontend to Cloudflare** button near the top of this README. It remains a
+frontend-only deployment: it never uploads JSONL files or proxies backend calls.
+Connect it to your separately reachable backend with `?host=` and configure that
+backend to allow the exact Worker origin. See [the Cloudflare deployment guide](docs/cloudflare-workers.md).
 
 ## Backend + web UI + remote TUI
 

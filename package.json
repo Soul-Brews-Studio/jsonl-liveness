@@ -6,7 +6,11 @@
   "scripts": {
     "test": "bun test",
     "build:css": "tailwindcss -i web/theme.css -o web/style.css --minify",
-    "build:web": "bun run build:css && bun build web/main.ts --target browser --outdir .local/web-build --minify --define 'process.env.NODE_ENV=\"production\"'"
+    "build:web": "bun run build:css && bun build web/main.ts --target browser --outdir .local/web-build --minify --define 'process.env.NODE_ENV=\"production\"'",
+    "build:cloudflare": "bun run build:web && bun run scripts/build-cloudflare.ts",
+    "build": "bun run build:cloudflare",
+    "dev:cloudflare": "bun run build:cloudflare && wrangler dev",
+    "deploy:cloudflare": "bun run build:cloudflare && wrangler deploy"
   },
   "dependencies": {
     "react": "19.2.8",
@@ -16,6 +20,7 @@
     "@tailwindcss/cli": "4.3.3",
     "tailwindcss": "4.3.3",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.7"
+    "@types/react-dom": "19.2.7",
+    "wrangler": "4.131.1"
   }
 }
