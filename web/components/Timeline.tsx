@@ -99,7 +99,7 @@ export function Timeline({snapshot,request,active,paused,onPause,onRefresh}:Time
   return <section id="timeline" aria-label="Live event timeline" className="min-w-0">
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">Timeline</h2><p className="mt-1 text-sm text-muted">New events append {direction==="bottom"?"below":"at the top"} every 2 seconds. Times are recorded in the transcript, not file touches.</p></div><span id="timeline-live" className="text-xs text-muted">{paused?"Paused":loading?"Updating…":"Following complete events"}</span></div>
     <div className="mb-4 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto]">
-      <details id="timeline-project" className="min-w-0 rounded-lg border border-line p-3">
+      <details id="timeline-project" open className="min-w-0 rounded-lg border border-line p-3">
         <summary className="cursor-pointer text-xs font-medium">Project / directory · {selectedProjects===null?"All":selectedProjects.size} selected</summary>
         <div className="my-3 flex gap-2">
           <button type="button" onClick={()=>{setSelectedProjects(null);reset();follow(false);}}>All</button>
