@@ -492,3 +492,40 @@ and skips timeline fetches. New projects appear unchecked in custom selections.
 Selections filter on the backend before the 50-session cap. The checklist lists
 only projects observed in returned feed events, not every archived directory.
 It grows with arrivals, resets on Refresh, and has a bounded scroll area.
+
+## Terminal timeline
+
+Start the dark TUI, then press **t** to switch between Sessions and Timeline:
+
+```sh
+bun run .                         # local read-only transcript scanner
+bun run . --host localhost:47881  # same backend as the web UI
+```
+
+Timeline shows complete events across sessions, newest arrivals at the top,
+with matching project-name colors and three-line message previews.
+
+| Key | Action |
+| --- | --- |
+| **t**, **Esc** | Return to Sessions |
+| **↑/↓**, **j/k**, **Page Up/Down** | Select an event; stop following |
+| **Enter** | Open that session's live detail; **Esc** returns to Timeline |
+| **1 / 2 / 3** | Toggle human messages / AI output / tools and other events |
+| **4 / 5** | Toggle main sessions / subagents and workflows |
+| **g** | Project checklist: arrows select, Space toggles, **a** All, **n** None, Enter applies, Esc cancels |
+| **/** | Search message text, name, project, or session ID |
+| **f**, **Home** | Toggle follow / jump to newest and follow |
+| **p** | Pause or resume polling |
+| **r** | Clear and refresh the feed and observed-project checklist |
+| **l** | Cycle the retained event limit: 50 → 100 → 20 |
+| **q** | Quit and restore the terminal |
+
+All projects includes new arrivals automatically; custom selections stay fixed.
+Filters are independent: unchecking every event or source category shows nothing.
+The feed reads at most 50 sessions, 64 KiB per tail, with a two-second refresh;
+it is not token streaming or full history. Partial lines wait for a newline.
+Opening details uses the existing larger bounded tail. No automatic file hashing.
+
+Proof: `bun test` and `python3 tui-timeline-smoke.py` use isolated fixtures;
+the smoke test checks live appends, partial-line holdback, filters, navigation,
+pause, and terminal cleanup without modifying real transcripts.
