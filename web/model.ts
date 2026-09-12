@@ -1,6 +1,6 @@
 import type { Snapshot } from "../source";
 export type FileRow = Snapshot["files"][number];
-export const fullID = (file: FileRow) => file.id || file.path.split("/").at(-1)!.replace(/\.jsonl$/, "");
+export const fullID = (file: Pick<FileRow,"path"|"id">) => file.id || file.path.split("/").at(-1)!.replace(/\.jsonl$/, "");
 export const shortProject = (project: string) => project.split("/").filter(Boolean).slice(-2).join("/");
 export const localTime = (value: string | null | undefined, fallback = "Not recorded") => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : fallback;
 export const lastWrite = (file: FileRow, scannedAt: string) => file.modifiedAt || new Date(file.mtimeMs ?? Date.parse(scannedAt) - file.age).toISOString();

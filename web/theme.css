@@ -48,7 +48,7 @@
   .primary {background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;}
   .primary:hover {filter:brightness(1.08);background:var(--accent);}
   .filter-button {padding:6px 8px;background:transparent;border-color:transparent;}
-  .session-row[data-selected=true] {background:var(--selected);}
+  .session-row[data-selected=true] {outline:1px solid var(--accent);outline-offset:-1px;}
   .session-row:hover {background:var(--panel);}
   .session-button:hover {color:var(--accent);background:transparent;}
   .freshness.hot {color:var(--hot);}.freshness.warm {color:var(--warm);}.freshness.cool {color:var(--cool);}.freshness.dead {color:var(--muted);}
@@ -83,7 +83,7 @@
 
 /* Home uses the same gentle arrival cue, but only for a changed message. */
 .session-row {--row-bg:transparent;}
-.session-row[data-selected=true] {--row-bg:var(--selected);}
+
 .session-row:hover {--row-bg:var(--panel);}
 .session-row[data-new=true] {animation:timeline-arrival 1.5s ease-in-out;}
 @media (prefers-reduced-motion:reduce) {.session-row[data-new=true] {animation:none;background:var(--selected);}}
