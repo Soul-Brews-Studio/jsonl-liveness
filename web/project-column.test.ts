@@ -3,17 +3,17 @@ import {createElement} from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {SessionList} from "./components/SessionList";
 
-test("identity fields are separate columns and full project path is optional",()=>{
+test("overview keeps the original combined identity and extra columns are optional",()=>{
   const html=renderToStaticMarkup(createElement(SessionList,{
     selected:"",onSelect:()=>{},paused:false,busy:false,onPause:()=>{},
     onRefresh:()=>{},table:true,request:async()=>({})
   }));
-  for(const label of ["Project","Name","Type"])expect(html).toContain(">"+label+"</th>");
+  for(const label of ["Project / session ID"])expect(html).toContain(">"+label+"</th>");
   expect(html).toContain("Show project path");
   expect(html).toContain("Show IDs");
   expect(html).not.toContain(">Session ID</th>");
   expect(html).not.toContain(">Agent ID</th>");
-  expect(html).toContain("session-overview w-full text-left text-sm");
+  expect(html).toContain("session-overview w-full text-left text-xs");
   expect(html).not.toContain('>Project path</th>');
   expect(html).not.toContain('checked=""');
 });
