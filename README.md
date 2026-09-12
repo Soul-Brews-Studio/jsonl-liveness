@@ -483,3 +483,10 @@ Changing size or timestamps alone does not prove new conversation content.
 Regression checks cover touch-without-message, complete append reordering,
 partial-line holdback, cache reuse, and explicit PID matching. The browser smoke
 also verifies touch-only refresh preserves row order and never requests hashes.
+
+### Timeline project checkboxes
+
+Expand **Project / directory** to select one or several exact directories.
+**All** automatically includes newly discovered projects; **None** hides events
+and skips timeline fetches. New projects appear unchecked in custom selections.
+Selections filter on the backend before the 50-session cap.

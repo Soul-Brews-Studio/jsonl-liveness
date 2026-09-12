@@ -14,7 +14,10 @@ export interface TimelineProps {
 }
 /** Full-page, inline events. The document owns the only scrolling surface. */
 export function Timeline({snapshot,request,active,paused,onPause,onRefresh}:TimelineProps) {
-  const [project,setProject]=useState(""),[query,setQuery]=useState("");
+  const [selectedProjects,setSelectedProjects]=useState<Set<string>|null>(null);
+  const [query,setQuery]=useState("");
+  const project=JSON.stringify(selectedProjects===null?null:[...selectedProjects].sort());
+  const noProjects=selectedProjects?.size===0;
   const [limit,setLimit]=useState(()=>timelineLimit(new URL(location.href).searchParams.get("limit")));
   const [direction,setDirection]=useState("top");
   const [eventFilters,setEventFilters]=useState<Set<TimelineEventFilter>>(()=>new Set(["human","output","tools"]));
@@ -29,7 +32,7 @@ export function Timeline({snapshot,request,active,paused,onPause,onRefresh}:Time
   const scope=JSON.stringify([project,limit]);
   const projects=useMemo(()=>[...new Set(snapshot?.files.map(file=>file.project)??[])].sort(),[snapshot]);
   // Cheap stat/name signature: no hashing or feed request on age-only ticks.
-  const signature=useMemo(()=>JSON.stringify((snapshot?.files??[]).filter(file=>!project||file.project===project)
+  const signature=useMemo(()=>JSON.stringify((snapshot?.files??[]).filter(file=>selectedProjects===null||selectedProjects.has(file.project))
     .slice(0,50).map(file=>[file.path,file.revision??`${file.mtimeMs}:${file.size}`,file.name])),[snapshot,project]);
   const data=result?.scope===scope?result.data:undefined;
   function follow(value:boolean){followRef.current=value;setFollowing(value);if(value)setNewCount(0);}
@@ -40,10 +43,10 @@ export function Timeline({snapshot,request,active,paused,onPause,onRefresh}:Time
   },[]);
   useEffect(()=>{
     const forced=manual!==lastManual.current;lastManual.current=manual;
-    if(!active||!snapshot||refreshing.current||(paused&&!forced&&feed.current?.scope===scope)){setLoading(false);return;}
+    if(noProjects||!active||!snapshot||refreshing.current||(paused&&!forced&&feed.current?.scope===scope)){setLoading(false);return;}
     const controller=new AbortController();let current=true;
     setLoading(true);setError("");
-    const params=new URLSearchParams({limit:String(limit)});if(project)params.set("project",project);
+    const params=new URLSearchParams({limit:String(limit)});if(selectedProjects!==null)for(const value of selectedProjects)params.append("project",value);
     request(`/api/timeline?${params}`,{signal:controller.signal}).then(value=>{
       if(!current)return;
       if(!isTimelineSnapshot(value))throw new Error("Backend returned an invalid timeline");
@@ -81,13 +84,26 @@ export function Timeline({snapshot,request,active,paused,onPause,onRefresh}:Time
   }
   function toggleEvent(value:TimelineEventFilter){setEventFilters(current=>{const next=new Set(current);next.has(value)?next.delete(value):next.add(value);return next;});follow(false);}
   function toggleSource(value:TimelineSourceFilter){setSourceFilters(current=>{const next=new Set(current);next.has(value)?next.delete(value):next.add(value);return next;});follow(false);}
-  const rows=(data?.rows??[]).filter(row=>matchesTimelineCheckboxes(row,eventFilters,sourceFilters) &&
+  const rows=(data?.rows??[]).filter(row=>(selectedProjects===null||selectedProjects.has(row.project)) && matchesTimelineCheckboxes(row,eventFilters,sourceFilters) &&
     `${row.project} ${row.sessionId} ${row.name??""} ${row.title} ${row.text}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
   const visible=direction==="bottom"?rows:rows.toReversed();
   return <section id="timeline" aria-label="Live event timeline" className="min-w-0">
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">Timeline</h2><p className="mt-1 text-sm text-muted">New events append {direction==="bottom"?"below":"at the top"} every 2 seconds. Times are recorded in the transcript, not file touches.</p></div><span id="timeline-live" className="text-xs text-muted">{paused?"Paused":loading?"Updating…":"Following complete events"}</span></div>
     <div className="mb-4 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto]">
-      <label className="min-w-0 text-xs font-medium">Project / directory<select id="timeline-project" className="mt-2" value={project} onChange={event=>{setProject(event.target.value);reset();follow(true);}}><option value="">All projects</option>{projects.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
+      <details id="timeline-project" className="min-w-0 rounded-lg border border-line p-3">
+        <summary className="cursor-pointer text-xs font-medium">Project / directory · {selectedProjects===null?"All":selectedProjects.size} selected</summary>
+        <div className="my-3 flex gap-2">
+          <button type="button" onClick={()=>{setSelectedProjects(null);reset();follow(false);}}>All</button>
+          <button type="button" onClick={()=>{setSelectedProjects(new Set());reset();follow(false);}}>None</button>
+        </div>
+        <p className="mb-2 text-xs text-muted">All includes new projects automatically. Custom selections stay unchanged.</p>
+        <fieldset aria-label="Timeline projects" className="grid gap-2">
+          {projects.map(value=><label key={value} className="timeline-checkbox-label break-all">
+            <input className="timeline-checkbox" type="checkbox" checked={selectedProjects===null||selectedProjects.has(value)}
+              onChange={()=>{setSelectedProjects(current=>{const next=new Set(current??projects);next.has(value)?next.delete(value):next.add(value);return next;});reset();follow(false);}}/>{value}
+          </label>)}
+        </fieldset>
+      </details>
       <label className="min-w-0 text-xs font-medium">Search this timeline<input id="timeline-search" type="search" placeholder="Message, project, name or session ID" value={query} onChange={event=>{setQuery(event.target.value);follow(false);}}/></label>
       <label className="text-xs font-medium">Events<select id="timeline-limit" className="mt-2" value={limit} onChange={event=>chooseLimit(event.target.value)}>{[20,50,100].map(value=><option key={value} value={value}>{value} events</option>)}</select></label>
       <label className="text-xs font-medium">New events<select id="timeline-direction" className="mt-2" value={direction} onChange={event=>{setDirection(event.target.value);follow(true);}}><option value="top">At the top ↑</option><option value="bottom">At the bottom ↓</option></select></label>
@@ -100,7 +116,7 @@ export function Timeline({snapshot,request,active,paused,onPause,onRefresh}:Time
         {(["main","subagents"] as const).map(value=><label key={value} className="timeline-checkbox-label"><input id={`timeline-show-${value}`} className="timeline-checkbox" type="checkbox" checked={sourceFilters.has(value)} onChange={()=>toggleSource(value)}/>{({main:"Main sessions",subagents:"Subagents & workflows"} as const)[value]}</label>)}
       </div></fieldset>
     </div>
-    <div className="mb-3 flex flex-wrap items-center gap-2"><button id="timeline-pause" aria-pressed={paused} onClick={onPause}>{paused?"Resume":"Pause"}</button><button id="timeline-refresh" disabled={loading} onClick={()=>void refresh()} title="Clear this feed and load the latest selected batch">Refresh</button><button id="timeline-follow" aria-pressed={following} onClick={()=>follow(!following)}>{following?"Following latest":"Follow latest"}</button><span id="timeline-count" role="status" className="text-xs text-muted">{data?`${visible.length} / ${limit} events · ${data.filesConsidered} sessions`:"Waiting for events…"}</span></div>
+    <div className="mb-3 flex flex-wrap items-center gap-2"><button id="timeline-pause" aria-pressed={paused} onClick={onPause}>{paused?"Resume":"Pause"}</button><button id="timeline-refresh" disabled={loading} onClick={()=>void refresh()} title="Clear this feed and load the latest selected batch">Refresh</button><button id="timeline-follow" aria-pressed={following} onClick={()=>follow(!following)}>{following?"Following latest":"Follow latest"}</button><span id="timeline-count" role="status" className="text-xs text-muted">{data?`${visible.length} / ${limit} events · ${data.filesConsidered} sessions`:noProjects?"No projects selected":"Waiting for events…"}</span></div>
     {error&&<p id="timeline-error" role="alert" className="mb-3 text-sm text-danger">{error}</p>}
     <div id="timeline-scroll" className="min-w-0">
       <table id="timeline-table" className="timeline-grid w-full table-fixed border-collapse text-left text-sm">

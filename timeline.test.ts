@@ -159,3 +159,21 @@ test("timeline accepts smaller row windows without extra reads and rejects unsaf
     await expect(cache.read(current,undefined,201)).rejects.toThrow("limit");
   });
 });
+
+test("project multi-selection supports one, several, none and newly arriving projects",async()=>{
+  await fixture(async root=>{
+    for(const name of ["a","b","c"]){
+      await mkdir(join(root,"-"+name));
+      await writeFile(join(root,"-"+name,"session.jsonl"),line({type:"user",timestamp:"2026-09-12T00:00:00Z",content:name}));
+    }
+    const current=await snapshot(root),cache=new TimelineCache(root);
+    expect((await cache.read(current,["/a"])).rows.map(row=>row.project)).toEqual(["/a"]);
+    expect(new Set((await cache.read(current,["/a","/c"])).rows.map(row=>row.project))).toEqual(new Set(["/a","/c"]));
+    expect((await cache.read(current,[])).rows).toEqual([]);
+    await mkdir(join(root,"-new"));
+    await writeFile(join(root,"-new","session.jsonl"),line({type:"user",timestamp:"2026-09-12T01:00:00Z",content:"new"}));
+    const updated=await snapshot(root);
+    expect((await cache.read(updated)).rows.some(row=>row.project==="/new")).toBe(true);
+    expect((await cache.read(updated,["/a","/c"])).rows.some(row=>row.project==="/new")).toBe(false);
+  });
+});

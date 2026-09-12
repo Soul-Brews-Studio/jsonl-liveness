@@ -54,7 +54,7 @@ export class LivenessService {
     if (!(await this.snapshot()).files.some(file => file.path === path)) throw new Error("Unknown session path");
     return readSessionDetail(this.root, path, maxBytes);
   }
-  async timeline(project?: string, limit?: number) {
+  async timeline(project?: string | string[], limit?: number) {
     return this.timelineCache.read(await this.snapshot(), project, limit);
   }
   async fingerprint(path:string,force=false) {

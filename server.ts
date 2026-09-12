@@ -93,8 +93,9 @@ export async function startServer(options: ServerOptions) {
         }
         if (url.pathname === "/api/timeline" && request.method === "GET") {
           if (service.error) return json({error:service.error, stale:true}, 503);
-          const project = url.searchParams.get("project") ?? undefined;
-          if (project && project.length > 4096) return json({error:"Project filter is too long"}, 400);
+          const projects = url.searchParams.getAll("project");
+          const project = projects.length ? projects : undefined;
+          if (projects.length > 200 || projects.some(value=>value.length > 4096)) return json({error:"Project filter is too long"}, 400);
           const limit = Number(url.searchParams.get("limit") ?? 200);
           if (![20,50,100,200].includes(limit)) return json({error:"Expected limit=20, 50, 100 or 200"}, 400);
           return json(await service.timeline(project,limit));

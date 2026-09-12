@@ -57,9 +57,9 @@ export class TimelineCache {
 
   constructor(private root: string) {}
 
-  async read(snapshot: Snapshot, project?: string, limit = MAX_ROWS): Promise<TimelineSnapshot> {
+  async read(snapshot: Snapshot, project?: string | string[], limit = MAX_ROWS): Promise<TimelineSnapshot> {
     if (!Number.isInteger(limit) || limit < 1 || limit > MAX_ROWS) throw new Error("Timeline limit must be between 1 and 200");
-    const eligible = latestMessages(snapshot.files).filter(file => project === undefined || file.project === project);
+    const eligible = latestMessages(snapshot.files).filter(file => project === undefined || (Array.isArray(project) ? project.includes(file.project) : file.project === project));
     const selected = eligible.slice(0, MAX_SESSIONS);
     const selectedPaths = new Set(selected.map(file => file.path));
     for (const path of this.entries.keys()) {
