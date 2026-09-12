@@ -4,7 +4,7 @@ import { join, relative, sep } from "node:path";
 
 export const defaults = { hot: 120_000, warm: 900_000, cool: 7_200_000 };
 export type Thresholds = typeof defaults;
-export type TailCache = Map<string, {revision:string;type:string|null;role:string|null}>;
+export type TailCache = Map<string, {revision:string;type:string|null;role:string|null;cwd?:string|null}>;
 export type Class = "hot" | "warm" | "cool" | "dead";
 export function statRevision(info: Pick<Stats, "mtimeMs" | "ctimeMs" | "size" | "ino">): string {
   return `${info.mtimeMs}:${info.ctimeMs}:${info.size}:${info.ino}`;
@@ -21,6 +21,25 @@ export function tier(path: string): string {
 }
 export function projectName(path: string): string {
   return path.split(sep)[0].replaceAll("-", "/");
+}
+
+// Read only complete records in a bounded head; never guess punctuation from
+// Claude's lossy encoded directory name. Unchanged revisions reuse this result.
+export async function recordedCwd(path: string): Promise<string | null> {
+  const file = await open(path, "r");
+  try {
+    const buffer = Buffer.alloc(65536);
+    const {bytesRead} = await file.read(buffer, 0, buffer.length, 0);
+    const end = buffer.subarray(0, bytesRead).lastIndexOf(10);
+    if (end < 0) return null;
+    for (const line of buffer.subarray(0, end).toString("utf8").split("\n")) {
+      try {
+        const value = JSON.parse(line);
+        if (typeof value?.cwd === "string" && value.cwd.startsWith("/") && !/[\x00-\x1f]/.test(value.cwd)) return value.cwd;
+      } catch { /* Skip malformed complete records, never a partial suffix. */ }
+    }
+    return null;
+  } finally { await file.close(); }
 }
 
 // Walk backwards to the final newline, then the preceding newline. An unfinished
@@ -52,7 +71,7 @@ export async function lastCompleteLine(path: string): Promise<string | undefined
 }
 
 export async function scan(root: string, thresholds = defaults, now = Date.now(), cache: TailCache = new Map()) {
-  const files: Array<{path: string; project: string; session: string; tier: string; class: Class; age: number; size: number; revision?: string; mtimeMs?:number;modifiedAt?:string;type: string | null; role: string | null}> = [];
+  const files: Array<{path: string; project: string; projectSource?: "cwd" | "decoded"; session: string; tier: string; class: Class; age: number; size: number; revision?: string; mtimeMs?:number;modifiedAt?:string;type: string | null; role: string | null}> = [];
   const errors: string[] = [];
   let tailReads=0;const seen=new Set<string>();
   async function walk(directory: string) {
@@ -71,6 +90,7 @@ export async function scan(root: string, thresholds = defaults, now = Date.now()
         const revision=statRevision(info);
         const cached=cache.get(path);
         let type: string | null = null, role: string | null = null;
+        let cwd: string | null = cached?.revision === revision ? cached.cwd ?? null : await recordedCwd(path);
         if(cached?.revision===revision){type=cached.type;role=cached.role;}
         else try {
           tailReads++;
@@ -79,13 +99,13 @@ export async function scan(root: string, thresholds = defaults, now = Date.now()
           type = typeof value?.type === "string" ? value.type : null;
           const lastRole = value?.role ?? value?.message?.role;
           role = typeof lastRole === "string" ? lastRole : null;
-          cache.set(path,{revision,type,role});
+          cache.set(path,{revision,type,role,cwd});
         } catch (error) {
-          if (error instanceof SyntaxError) cache.set(path,{revision,type:null,role:null});
+          if (error instanceof SyntaxError) cache.set(path,{revision,type:null,role:null,cwd});
           else {cache.delete(path);errors.push(`${path}: ${error}`);}
         }
         const local = relative(root, path);
-        files.push({path, project: projectName(local), session: entry.name.slice(0, -6).slice(0, 8), tier: tier(local), class: classify(age, thresholds), age, size: info.size,revision,mtimeMs:info.mtimeMs,modifiedAt:info.mtime.toISOString(), type, role});
+        files.push({path, project: cwd ?? projectName(local), projectSource: cwd ? "cwd" : "decoded", session: entry.name.slice(0, -6).slice(0, 8), tier: tier(local), class: classify(age, thresholds), age, size: info.size,revision,mtimeMs:info.mtimeMs,modifiedAt:info.mtime.toISOString(), type, role});
       } catch (error) { errors.push(`${path}: ${error}`); }
     }
   }

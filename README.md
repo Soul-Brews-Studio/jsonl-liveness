@@ -121,8 +121,10 @@ time, and read errors; one-shot read errors produce exit status 1.
 
 The root defaults to `~/.claude/projects`. Files are sorted by recorded message time;
 file freshness is shown separately.
-Project names decode directory hyphens to slashes (inherently ambiguous for
-original hyphens); no transcript bodies are used to guess project names.
+Project paths prefer the first recorded absolute cwd in a bounded 64 KiB head
+of complete records. This preserves dots and hyphens. Unchanged stat revisions
+reuse the cached result. If absent, directory decoding is an estimated path,
+not an exact working directory; the web table labels that fallback explicitly.
 Tiers distinguish session, subagent, workflow-journal, and workflow-agent.
 Directory symlinks are not traversed, preventing cycles and root escape.
 Age indicates recent filesystem writes, **not** proof a Claude process is alive.

@@ -49,3 +49,25 @@ test("fixture turns hot when touched and reports tail metadata", async () => {
     expect(result.errors).toEqual([]);
   } finally { await rm(root, {recursive:true, force:true}); }
 });
+
+test("recorded cwd preserves punctuation and unchanged scans reuse the head", async () => {
+  const root = await mkdtemp(join(tmpdir(), "jsonl-cwd-"));
+  try {
+    const directory = join(root, "-opt-Code-github-com-nat-build-with-oracle-12sep-sat2026-oracle");
+    await mkdir(directory);
+    const path = join(directory, "session.jsonl");
+    const cwd = "/opt/Code/github.com/nat-build-with-oracle/12sep-sat2026-oracle";
+    await writeFile(path, '{"type":"metadata"}\n' + JSON.stringify({type:"user",cwd}) + '\n{"cwd":"/partial"}');
+    const cache = new Map();
+    const first = await scan(root, undefined, Date.now(), cache);
+    expect(first.files[0].project).toBe(cwd);
+    expect(first.files[0].projectSource).toBe("cwd");
+    expect((await scan(root, undefined, Date.now(), cache)).tailReads).toBe(0);
+    await writeFile(path, '{"cwd":"/partial"}');
+    const partial = await scan(root, undefined, Date.now(), cache);
+    expect(partial.files[0].projectSource).toBe("decoded");
+    expect(partial.files[0].project).not.toBe("/partial");
+    await writeFile(path, JSON.stringify({padding:"x".repeat(65536),cwd})+'\n');
+    expect((await scan(root)).files[0].projectSource).toBe("decoded");
+  } finally { await rm(root, {recursive:true,force:true}); }
+});
