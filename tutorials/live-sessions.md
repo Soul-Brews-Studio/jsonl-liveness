@@ -137,7 +137,7 @@ after reload and applies to the table and live popup.
 **File updated** means filesystem modification time. **Message** and **Last recorded
 event** are timestamps recorded inside the transcript; they can be older.
 
-In the TUI, select a session and press **Enter** for live details, **t** for Paper,
-and **Esc** to return. Use **j/k** or arrow keys to scroll, **f** to follow latest,
+In the TUI, select a session and press **Enter** for live details
+and **Esc** to return. The TUI stays dark; Paper is only available on the web. Use **j/k** or arrow keys to scroll, **f** to follow latest,
 and **o** to reverse event order. Complete records refresh every second; partial
 records remain withheld. The Paper screenshot uses only synthetic fixture data.

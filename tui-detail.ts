@@ -38,6 +38,6 @@ export function renderTuiDetail(view: DetailView) {
     "",
   ];
   const status=view.error||`${view.newestFirst?"Newest first":"Oldest first"} · ${view.following?"FOLLOW":"manual"} · ${offset+1}–${Math.min(body.length,offset+limit)}/${body.length} lines${view.data?.partialLineHeld?" · partial line held":""}${view.data?.hasOlder?" · older history omitted":""}`;
-  const lines=[...header,...body.slice(offset,offset+limit),"",status,"Esc back · q quit · t theme · ↑↓/jk scroll · PgUp/Dn · f follow · o order · p pause"];
+  const lines=[...header,...body.slice(offset,offset+limit),"",status,"Esc back · q quit · ↑↓/jk scroll · PgUp/Dn · f follow · o order · p pause"];
   return {offset,maxOffset,limit,text:lines.slice(0,Math.max(1,view.height-1)).map(line=>Array.from(safe(line)).slice(0,width).join("")).join("\n")};
 }

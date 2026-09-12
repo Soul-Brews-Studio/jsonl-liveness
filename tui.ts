@@ -54,8 +54,8 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
   let edit: { kind: "name" | "search"; text: string; path: string } | undefined;
   let saving = false, message = "", timer: ReturnType<typeof setTimeout> | undefined;
   let detailPath="",detailData:SessionDetail|undefined,detailRevision="",detailLoading=false,detailError="",detailEpoch=0;
-  let detailOffset=0,following=true,newestFirst=false,paper=false;
-  const help = "Enter detail · ↑↓/jk move · n name · / find · a all · p pause · t theme · q quit";
+  let detailOffset=0,following=true,newestFirst=false;
+  const help = "Enter detail · ↑↓/jk move · n name · / find · a all · p pause · q quit";
   const files = () => matchingFiles(snapshot, names, all, query);
   const index = (rows: File[]) => Math.max(0, rows.findIndex(file => file.path === selectedPath));
   let fail: (error: unknown) => void = error => { throw error; };
@@ -74,7 +74,7 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
       const frame=renderTuiDetail({path:detailPath,file:snapshot.files.find(file=>file.path===detailPath),name:names[detailPath],data:detailData,error:detailError||message,loading:detailLoading,paused,following,newestFirst,offset:detailOffset,width,height});
       detailOffset=frame.offset;output=frame.text;
     }else output=renderTui(snapshot,names,rows,selected,width,height,footer);
-    const palette=paper?"\x1b[0m\x1b[48;2;250;247;240m\x1b[38;2;35;32;28m":"\x1b[0m";
+    const palette="\x1b[0m\x1b[48;2;13;17;23m\x1b[38;2;230;237;243m";
     process.stdout.write(palette+"\x1b[H\x1b[2J"+output);
     } catch (error) { fail(error); }
   }
@@ -149,7 +149,6 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
         message = "";
         const rows = files(), current = index(rows);
         if (key.name === "q") { stop(); return; }
-        if(key.name==="t"){paper=!paper;draw();return;}
         if(detailPath){
           if(key.name==="escape"||key.name==="backspace"){detailPath="";detailData=undefined;detailEpoch++;detailLoading=false;}
           else if(key.name==="p")paused=!paused;

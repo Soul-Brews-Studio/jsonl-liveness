@@ -136,8 +136,8 @@ The UI reports hot/warm/cool/dead, not inferred Working/Needs input/Completed.
 - **↑/↓**, **j/k**, or **Page Up/Down** scroll; **Home** jumps to the first line.
 - **f** toggles following; **End** follows the newest activity; **o** switches
   oldest-first/newest-first. Manual scrolling stops following.
-- **t** toggles **Paper** (warm white/dark ink) and your terminal's default colors,
-  in either list or detail view. Terminal colors are reset on exit.
+- The TUI always uses a dark background and light text. **Paper is web-only**.
+  Terminal colors are reset on exit.
 - **p** pauses/resumes 1-second polling. Opening a detail still reads its initial
   bounded snapshot while paused.
 

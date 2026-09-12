@@ -50,7 +50,10 @@ with tempfile.TemporaryDirectory(prefix="jsonl-tui-smoke-") as temp:
         until(b"JSONL LIVE DETAIL")
         until(b"FIRST LIVE MESSAGE")
         os.write(master, b"t")
-        until(b"48;2;250;247;240m")
+        captured = b""
+        until(b"48;2;13;17;23m")
+        assert b"48;2;250;247;240m" not in captured
+        assert b"t theme" not in captured
         assert transcript.read_bytes() == original
         assert transcript.stat().st_mtime_ns == original_mtime
         with transcript.open("a") as stream:
@@ -122,7 +125,7 @@ with tempfile.TemporaryDirectory(prefix="jsonl-tui-smoke-") as temp:
         assert b"\x1b[?1049l" in captured and b"\x1b[?25h" in captured
         process.wait(timeout=4)
         print("PTY failure-path PASS: injected rendering error restores raw mode, cursor and screen")
-        print("PTY smoke PASS: Enter/live append/Esc, Paper theme, rename, persistence, pause, JSON ID/name, clear, terminal restore; transcript unchanged")
+        print("PTY smoke PASS: Enter/live append/Esc, dark-only theme, rename, persistence, pause, JSON ID/name, clear, terminal restore; transcript unchanged")
     finally:
         if process.poll() is None:
             process.terminate()
