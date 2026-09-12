@@ -8,8 +8,12 @@ test("identity fields are separate columns and full project path is optional",()
     selected:"",onSelect:()=>{},paused:false,busy:false,onPause:()=>{},
     onRefresh:()=>{},table:true,request:async()=>({})
   }));
-  for(const label of ["Project","Name","Type","Session ID","Agent ID"])expect(html).toContain(">"+label+"</th>");
+  for(const label of ["Project","Name","Type"])expect(html).toContain(">"+label+"</th>");
   expect(html).toContain("Show project path");
+  expect(html).toContain("Show IDs");
+  expect(html).not.toContain(">Session ID</th>");
+  expect(html).not.toContain(">Agent ID</th>");
+  expect(html).toContain("session-overview w-full text-left text-sm");
   expect(html).not.toContain('>Project path</th>');
   expect(html).not.toContain('checked=""');
 });

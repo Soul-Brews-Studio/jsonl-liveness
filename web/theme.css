@@ -91,3 +91,10 @@
 @keyframes arrival-badge {0%,100% {opacity:0;} 25%,55% {opacity:1;}}
 tr[data-new=true] .arrival-badge {animation:arrival-badge 1.5s ease-in-out;}
 @media (prefers-reduced-motion:reduce) {tr[data-new=true] .arrival-badge {animation:none;opacity:1;}}
+
+/* Readable overview: technical identifiers are opt-in, never compressed. */
+.session-overview th {white-space:nowrap;}
+.session-overview td {padding-top:1.25rem;padding-bottom:1.25rem;line-height:1.5;}
+.session-overview td:first-child {min-width:11rem;}
+.session-overview td:nth-child(2) {min-width:7rem;}
+.session-overview .message-cell {min-width:20rem;}
