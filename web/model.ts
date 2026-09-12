@@ -30,3 +30,13 @@ export function isSnapshot(value: unknown): value is Snapshot {
 export function messageRevision(file:Pick<FileRow,"message">):string|undefined {
   return file.message?.text ? JSON.stringify([file.message.role,file.message.timestamp,file.message.text]) : undefined;
 }
+
+
+// A future or unknown timestamp must not masquerade as recent activity.
+export function recentTime(value: string | null | undefined, now = Date.now()): boolean {
+  const elapsed = now - Date.parse(value ?? "");
+  return elapsed >= 0 && elapsed < 300_000;
+}
+export function rowTime(value: string | null | undefined, now = Date.now()): string {
+  return recentTime(value, now) ? age(now - Date.parse(value!)) + " ago" : localTime(value);
+}
