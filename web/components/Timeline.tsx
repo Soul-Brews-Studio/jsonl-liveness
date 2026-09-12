@@ -30,7 +30,16 @@ export function Timeline({snapshot,request,active,paused,onPause,onRefresh}:Time
   const feed=useRef<{scope:string;data:TimelineSnapshot;seen:Set<string>} | undefined>(undefined);
   const refreshing=useRef(false);
   const scope=JSON.stringify([project,limit]);
-  const projects=useMemo(()=>[...new Set(snapshot?.files.map(file=>file.project)??[])].sort(),[snapshot]);
+  const [seenProjects,setSeenProjects]=useState<Set<string>>(()=>new Set());
+  const projects=useMemo(()=>[...seenProjects].sort(),[seenProjects]);
+  useEffect(()=>{
+    if(!result)return;
+    setSeenProjects(current=>{
+      const next=new Set(current);
+      for(const row of result.data.rows)next.add(row.project);
+      return next.size===current.size?current:next;
+    });
+  },[result]);
   // Cheap stat/name signature: no hashing or feed request on age-only ticks.
   const signature=useMemo(()=>JSON.stringify((snapshot?.files??[]).filter(file=>selectedProjects===null||selectedProjects.has(file.project))
     .slice(0,50).map(file=>[file.path,file.revision??`${file.mtimeMs}:${file.size}`,file.name])),[snapshot,project]);
@@ -75,7 +84,7 @@ export function Timeline({snapshot,request,active,paused,onPause,onRefresh}:Time
   },[active,direction]);
   async function refresh(){
     if(refreshing.current)return;
-    refreshing.current=true;reset();
+    refreshing.current=true;reset();setSeenProjects(new Set());
     try{await onRefresh();}finally{refreshing.current=false;setManual(value=>value+1);}
   }
   function chooseLimit(value:string){
@@ -96,8 +105,9 @@ export function Timeline({snapshot,request,active,paused,onPause,onRefresh}:Time
           <button type="button" onClick={()=>{setSelectedProjects(null);reset();follow(false);}}>All</button>
           <button type="button" onClick={()=>{setSelectedProjects(new Set());reset();follow(false);}}>None</button>
         </div>
-        <p className="mb-2 text-xs text-muted">All includes new projects automatically. Custom selections stay unchanged.</p>
-        <fieldset aria-label="Timeline projects" className="grid gap-2">
+        <p className="mb-2 text-xs text-muted">Only projects seen in this feed. New arrivals appear here; Refresh clears the list.</p>
+        <fieldset aria-label="Timeline projects" className="grid gap-2" style={{maxHeight:"16rem",overflowY:"auto"}}>
+          {projects.length===0&&<p className="text-xs text-muted">No projects seen yet. Choose All to follow new arrivals.</p>}
           {projects.map(value=><label key={value} className="timeline-checkbox-label break-all">
             <input className="timeline-checkbox" type="checkbox" checked={selectedProjects===null||selectedProjects.has(value)}
               onChange={()=>{setSelectedProjects(current=>{const next=new Set(current??projects);next.has(value)?next.delete(value):next.add(value);return next;});reset();follow(false);}}/>{value}

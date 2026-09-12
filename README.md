@@ -489,4 +489,6 @@ also verifies touch-only refresh preserves row order and never requests hashes.
 Expand **Project / directory** to select one or several exact directories.
 **All** automatically includes newly discovered projects; **None** hides events
 and skips timeline fetches. New projects appear unchecked in custom selections.
-Selections filter on the backend before the 50-session cap.
+Selections filter on the backend before the 50-session cap. The checklist lists
+only projects observed in returned feed events, not every archived directory.
+It grows with arrivals, resets on Refresh, and has a bounded scroll area.
