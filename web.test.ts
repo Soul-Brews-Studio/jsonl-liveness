@@ -123,3 +123,11 @@ test("timeline keeps the shared shell width and natural-height rows without nest
   expect(shell).not.toContain("max-width");
   expect(css).not.toMatch(/\.timeline-(?:event|event-scroll|meta)\s*\{[^}]*(?:max-height|height:18rem|overflow:auto)/);
 });
+
+test("session list leads with the decoded project and keeps the complete ID visible",async()=>{
+  const source=await readFile(new URL("./web/components/SessionList.tsx",import.meta.url),"utf8");
+  expect(source).toContain("Project / session ID");
+  expect(source).toContain("{file.name||fullID(file)}");
+  expect(source).toContain("title={file.project}");
+  expect(source).not.toContain("fullID(file).slice(0,18)");
+});
