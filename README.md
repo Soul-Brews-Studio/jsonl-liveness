@@ -4,6 +4,13 @@ Standalone Bun + TypeScript CLI and live web app. The scanner/TUI have no
 third-party runtime dependencies. The browser now uses **React + Tailwind**,
 explicitly requested after the original zero-dependency lab.
 
+## Timestamp meanings
+
+**File updated** is the filesystem modification time, not the time a message was
+sent. Each recent-message preview shows its own **Message** timestamp; the popup
+also shows **Last recorded event**. All are displayed in local time. A later file
+write does not prove a new chat message arrived or that an agent is working.
+
 ## See it live
 
 Click a session row to open its **live popup**. Complete messages refresh every
@@ -24,7 +31,7 @@ Includes safe synthetic fixtures, a live-append command, host selection, and
 verified navigation. All screenshots below use synthetic data, not private chats.
 
 <details>
-<summary>More screenshots: session table and expanded tools</summary>
+<summary>More screenshots: session table, expanded tools, and Paper theme</summary>
 
 ### Session table with recent messages
 
@@ -33,6 +40,12 @@ verified navigation. All screenshots below use synthetic data, not private chats
 ### Readable tool input and output
 
 ![Expanded tool input and output in the live popup](tutorials/images/02-live-popup.png)
+
+### Paper: warm white, dark ink
+
+Choose **Theme → Paper** for higher-readability light surfaces.
+
+![Paper theme with separate file and event timestamps](tutorials/images/04-paper-theme.png)
 
 </details>
 
@@ -88,8 +101,8 @@ reduced to aggregate counts (no private session identifiers):
 
 ## Interactive session names
 
-In a terminal, `bun run .` opens the live TUI. Select with **↑/↓** or **j/k**,
-then press **n** to name the selected session. **Enter** saves, **Esc** cancels,
+In a terminal, `bun run .` opens the live TUI. Select with **↑/↓** or **j/k**.
+Press **Enter** to open live message and tool details, or press **n** to name the selected session. **Enter** saves, **Esc** cancels,
 **Ctrl-U** clears the input; saving an empty name removes the alias.
 
 - **/** searches IDs, names, projects, and tiers; empty search resets it.
@@ -115,6 +128,23 @@ for another projects directory. `--once --json` now includes full `id` and `name
 retains plain snapshots; interactive mode requires terminal stdin and stdout.
 
 The UI reports hot/warm/cool/dead, not inferred Working/Needs input/Completed.
+
+## Live terminal details
+
+- **Enter** opens the selected session's messages and tool input/output.
+- **Esc** or **Backspace** returns to the same list selection; **q** exits.
+- **↑/↓**, **j/k**, or **Page Up/Down** scroll; **Home** jumps to the first line.
+- **f** toggles following; **End** follows the newest activity; **o** switches
+  oldest-first/newest-first. Manual scrolling stops following.
+- **t** toggles **Paper** (warm white/dark ink) and your terminal's default colors,
+  in either list or detail view. Terminal colors are reset on exit.
+- **p** pauses/resumes 1-second polling. Opening a detail still reads its initial
+  bounded snapshot while paused.
+
+Works both locally and with `--host`. Unchanged stat revisions do not reread
+message details. Reads use the same bounded 256 KiB tail / 64 KiB head as the web;
+partial final lines stay hidden until newline-terminated. Tools render as plain
+text; terminal control sequences are neutralized. This is not a prompt composer.
 
 ## Terminal verification
 
@@ -290,9 +320,10 @@ import "./web/style.css"; // compiled Tailwind utilities + theme tokens
 <ActivityEvent event={event} />
 ```
 
-Choose **Midnight** or **Van Gogh · Starry Night** in the Theme selector. The
+Choose **Midnight**, **Van Gogh · Starry Night**, or **Paper** in the Theme selector. The
 Van Gogh-inspired palette uses deep blues, sunflower-yellow accents and warm
-cream text. Theme choice is remembered locally and does not change your backend,
+cream text. **Paper** uses a warm-white background, dark ink, and a high-contrast
+brown accent for easier daytime reading. Theme choice is remembered locally and does not change your backend,
 selected session or token. There are no remote fonts, images or CSS CDNs.
 
 All component utilities use semantic tokens (`bg-surface`, `text-ink`,

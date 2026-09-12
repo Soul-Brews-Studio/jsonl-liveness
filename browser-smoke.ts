@@ -73,6 +73,7 @@ try {
   await until(()=>$("activity-list").textContent.includes("Assistant activity"),"selected session activity");
   assert($("workspace").dataset.view==="table","original table is not the default view");
   await until(()=>$("rows").querySelector(".message-preview")?.textContent.includes("Assistant activity"),"table recent message preview");
+  assert(Date.parse($("rows").querySelector(".message-preview time")?.dateTime)===Date.parse("2026-09-11T01:00:01Z"),"message timestamp missing from preview");
   $("rows").querySelector("tr td:nth-child(2)").click();
   await until(()=>$("workspace").dataset.view==="live","clicking a session row opens conversation details");
   assert($("live-dialog")?.open,"session popup is not open");
@@ -102,6 +103,11 @@ try {
   $("theme").value="vangogh";$("theme").dispatchEvent(new window.Event("change",{bubbles:true}));
   await until(()=>window.document.documentElement.dataset.theme==="vangogh","Van Gogh theme");
   assert(window.localStorage.getItem("jsonl-liveness-theme")==="vangogh","theme not persisted");
+  $("theme").value="paper";$("theme").dispatchEvent(new window.Event("change",{bubbles:true}));
+  await until(()=>window.document.documentElement.dataset.theme==="paper","Paper theme");
+  assert(window.localStorage.getItem("jsonl-liveness-theme")==="paper","Paper theme not persisted");
+  $("theme").value="vangogh";$("theme").dispatchEvent(new window.Event("change",{bubbles:true}));
+  await until(()=>window.document.documentElement.dataset.theme==="vangogh","restore Van Gogh theme");
   $("dialog-home").click();await until(()=>$("workspace").dataset.view==="table","popup title link returns home");
   assert(window.document.activeElement?.dataset.sessionPath,"Home did not restore row focus after refresh");
   $("home").click();

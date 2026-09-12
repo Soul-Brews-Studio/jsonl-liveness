@@ -111,3 +111,22 @@ Live means complete-message polling, not per-token streaming; scan/client cycles
 can add latency. Start/end are bounded evidence, not guessed process state.
 No database is implemented. Full-file hashing remains explicit and can be slow
 for large files. Tutorial images contain synthetic fixtures only.
+
+## September 12 checkpoint
+
+Added terminal live details, Paper theme, and separate file/message/event time labels.
+
+Charter verification (`bun test && bun run . --once --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d["files"]), "files,", sum(1 for f in d["files"] if f["class"]=="hot"), "hot")'`):
+
+```text
+29 pass
+0 fail
+245 expect() calls
+Ran 29 tests across 8 files.
+3890 files, 0 hot
+```
+
+Local and authenticated-remote PTY smoke tests passed, including Enter/back, live
+append, partial-record holdback, Paper colors, naming, and terminal restoration.
+React DOM/HTTP smoke and strict TypeScript checks passed. Paper persistence and
+light colors were also verified in the browser using synthetic data.

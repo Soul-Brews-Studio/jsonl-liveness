@@ -126,3 +126,18 @@ below the table; wide desktop windows use equal-height side-by-side panels.
 - This is complete-message polling, not token streaming or a terminal-control interface.
 - Capture tooling initially cropped screenshots at browser zoom. Direct viewport
   capture through the same Ego page corrected it; no images were fabricated.
+
+## Paper and terminal live details — September 12 update
+
+Choose **Theme → Paper** for warm-white surfaces and dark ink. The choice persists
+after reload and applies to the table and live popup.
+
+![Paper live popup](images/04-paper-theme.png)
+
+**File updated** means filesystem modification time. **Message** and **Last recorded
+event** are timestamps recorded inside the transcript; they can be older.
+
+In the TUI, select a session and press **Enter** for live details, **t** for Paper,
+and **Esc** to return. Use **j/k** or arrow keys to scroll, **f** to follow latest,
+and **o** to reverse event order. Complete records refresh every second; partial
+records remain withheld. The Paper screenshot uses only synthetic fixture data.

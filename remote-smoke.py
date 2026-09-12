@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix="jsonl-remote-smoke-") as temp:
     root = directory / "projects"
     root.mkdir()
     transcript = root / "remote123.jsonl"
-    transcript.write_text('{"type":"assistant"}\n')
+    transcript.write_text(json.dumps({'type':'assistant','message':{'role':'assistant','content':'REMOTE LIVE DETAIL'}})+'\n')
     before = (transcript.read_bytes(), transcript.stat().st_mtime_ns)
     env = dict(os.environ, JSONL_TOKEN="fixture-only-token")
     server = subprocess.Popen(["bun", "run", ".", "--serve", "--root", str(root), "--port", "0"], cwd=copy, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -46,6 +46,12 @@ with tempfile.TemporaryDirectory(prefix="jsonl-remote-smoke-") as temp:
                     assert chunk, "terminal closed"
                     captured += chunk
         until(b"remote123")
+        os.write(master, b"\r")
+        until(b"JSONL LIVE DETAIL")
+        until(b"REMOTE LIVE DETAIL")
+        captured = b""
+        os.write(master, b"\x1b")
+        until(b"SESSION ID")
         os.write(master, b"n")
         until(b"Name (empty clears)")
         os.write(master, b"Remote worker\r")

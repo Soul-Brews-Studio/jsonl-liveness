@@ -23,6 +23,12 @@
   --ink:#fff1d3;--muted:#becde4;--line:#526d94;--accent:#f5ce63;--accent-ink:#27200d;
   --selected:#304f79;--danger:#ffb9a7;--hot:#f8cb68;--warm:#eedd9c;--cool:#a6cfee;
 }
+:root[data-theme=paper] {
+  color-scheme:light;
+  --canvas:#f7f1e3;--surface:#fffaf0;--panel:#eee4d1;--code:#f1e8d8;
+  --ink:#29251f;--muted:#625b50;--line:#8b7d69;--accent:#87412f;--accent-ink:#fffaf0;
+  --selected:#d7e4dc;--danger:#9b2f2f;--hot:#9a3f24;--warm:#735b00;--cool:#245d70;
+}
 @layer base {
   body {@apply m-0 bg-canvas text-ink antialiased;}
   button, input, select {font:inherit;}

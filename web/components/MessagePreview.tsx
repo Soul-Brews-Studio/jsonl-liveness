@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { localTime } from "../model";
 import type { Request } from "../useBackend";
 export interface Preview {text:string;role:string|null;timestamp:string|null;truncated:boolean}
 /** Each mounted (visible) row requests a small preview only when its file changes. */
@@ -12,6 +13,6 @@ export function MessagePreview({path,revision,request}:{path:string;revision:str
     return()=>{current=false;controller.abort();};
   },[path,revision,request]);
   return <div className="message-preview min-w-44 max-w-80 py-2" title={preview?.text}>
-    {failed?<span className="text-muted">Preview unavailable · open details</span>:!preview?<span className="text-muted">Reading recent message…</span>:preview.text?<><span className="mb-1 block text-[10px] font-medium capitalize text-accent">{preview.role}</span><span className="line-clamp-2 whitespace-pre-wrap break-words text-xs leading-5 text-ink">{preview.text}{preview.truncated?"…":""}</span></>:<span className="text-muted">No message in last 64 KiB · open details</span>}
+    {failed?<span className="text-muted">Preview unavailable · open details</span>:!preview?<span className="text-muted">Reading recent message…</span>:preview.text?<><span className="mb-1 block text-[10px] font-medium capitalize text-accent">{preview.role}</span><span className="line-clamp-2 whitespace-pre-wrap break-words text-xs leading-5 text-ink">{preview.text}{preview.truncated?"…":""}</span><time className="mt-1 block text-[10px] text-muted" dateTime={preview.timestamp??undefined}>Message: {localTime(preview.timestamp)}</time></>:<span className="text-muted">No message in last 64 KiB · open details</span>}
   </div>;
 }

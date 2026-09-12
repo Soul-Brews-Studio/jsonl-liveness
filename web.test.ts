@@ -11,9 +11,9 @@ function luminance(hex:string) {
   return channels[0]*0.2126+channels[1]*0.7152+channels[2]*0.0722;
 }
 function contrast(a:string,b:string) {const values=[luminance(a),luminance(b)].sort((a,b)=>b-a);return (values[0]+0.05)/(values[1]+0.05);}
-test("both theme palettes keep text and accent controls legible",async()=>{
+test("all three theme palettes keep text and accent controls legible",async()=>{
   const css=await readFile(new URL("./web/theme.css",import.meta.url),"utf8");
-  for(const selector of [":root",":root[data-theme=vangogh]"]) {
+  for(const selector of [":root",":root[data-theme=vangogh]",":root[data-theme=paper]"]) {
     const block=css.slice(css.indexOf(selector)).split("}")[0];
     const tokens=Object.fromEntries([...block.matchAll(/--([\w-]+):\s*(#[\da-f]{6})/g)].map(match=>[match[1],match[2]]));
     for(const surface of ["canvas","surface","panel","code","selected"])

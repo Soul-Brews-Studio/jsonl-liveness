@@ -1,3 +1,5 @@
+import { renderTuiDetail } from "./tui-detail";
+import type { SessionDetail } from "./details";
 import { emitKeypressEvents } from "node:readline";
 import { ageLabel, shortProject, sizeLabel } from "./display";
 import { type scan, type Thresholds } from "./liveness";
@@ -51,7 +53,9 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
   let selectedPath = "", query = "", all = false, paused = false, stopped = false, scanning = false;
   let edit: { kind: "name" | "search"; text: string; path: string } | undefined;
   let saving = false, message = "", timer: ReturnType<typeof setTimeout> | undefined;
-  const help = "↑/↓ or j/k move · n name · / search · a recent/all · p pause · q quit";
+  let detailPath="",detailData:SessionDetail|undefined,detailRevision="",detailLoading=false,detailError="",detailEpoch=0;
+  let detailOffset=0,following=true,newestFirst=false,paper=false;
+  const help = "Enter detail · ↑↓/jk move · n name · / find · a all · p pause · t theme · q quit";
   const files = () => matchingFiles(snapshot, names, all, query);
   const index = (rows: File[]) => Math.max(0, rows.findIndex(file => file.path === selectedPath));
   let fail: (error: unknown) => void = error => { throw error; };
@@ -64,8 +68,28 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
     selectedPath = rows[selected]?.path ?? "";
     const footer = edit ? `${edit.kind === "name" ? "Name (empty clears)" : "Search"}: ${edit.text}█ · Enter saves · Esc cancels`
       : `${paused ? "PAUSED · " : ""}${message || help}${snapshot.errors.length ? ` · ${snapshot.errors.length} read errors` : ""}`;
-    process.stdout.write("\x1b[H\x1b[2J" + renderTui(snapshot, names, rows, selected, process.stdout.columns || 110, process.stdout.rows || 30, footer));
+    const width=process.stdout.columns||110,height=process.stdout.rows||30;
+    let output:string;
+    if(detailPath){
+      const frame=renderTuiDetail({path:detailPath,file:snapshot.files.find(file=>file.path===detailPath),name:names[detailPath],data:detailData,error:detailError||message,loading:detailLoading,paused,following,newestFirst,offset:detailOffset,width,height});
+      detailOffset=frame.offset;output=frame.text;
+    }else output=renderTui(snapshot,names,rows,selected,width,height,footer);
+    const palette=paper?"\x1b[0m\x1b[48;2;250;247;240m\x1b[38;2;35;32;28m":"\x1b[0m";
+    process.stdout.write(palette+"\x1b[H\x1b[2J"+output);
     } catch (error) { fail(error); }
+  }
+  async function loadDetail(force=false) {
+    if(stopped||!detailPath||detailLoading)return;
+    const path=detailPath,file=snapshot.files.find(file=>file.path===path);
+    if(!file){detailError="Session no longer in snapshot · Esc back";return;}
+    const revision=file.revision??`${file.size}:${file.mtimeMs??Date.parse(snapshot.scannedAt)-file.age}`;
+    if(!force&&detailRevision===revision)return;
+    const epoch=++detailEpoch;detailLoading=true;detailError="";
+    try {
+      const data=await source.detail(path);
+      if(!stopped&&epoch===detailEpoch&&detailPath===path){detailData=data;detailRevision=revision;}
+    }catch(error){if(epoch===detailEpoch)detailError=`Details unavailable: ${error}`;}
+    finally{if(epoch===detailEpoch){detailLoading=false;draw();}}
   }
   async function refresh() {
     if (stopped || scanning) return;
@@ -75,6 +99,7 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
       if (!paused) {
         snapshot = await source.read();
         if (!edit && !saving) names = snapshotNames(snapshot);
+        await loadDetail();
       }
     } catch (error) { message = `Error: ${error}`; }
     finally {
@@ -97,7 +122,7 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
       // Cleanup remains best-effort even when a terminal device has disconnected.
       try { process.stdin.setRawMode(wasRaw); } catch {}
       process.stdin.pause();
-      try { process.stdout.write("\x1b[?25h\x1b[?1049l"); } catch {}
+      try { process.stdout.write("\x1b[0m\x1b[?25h\x1b[?1049l"); } catch {}
       process.stdin.removeListener("error", fail);
       process.stdout.removeListener("error", fail);
     };
@@ -124,6 +149,25 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
         message = "";
         const rows = files(), current = index(rows);
         if (key.name === "q") { stop(); return; }
+        if(key.name==="t"){paper=!paper;draw();return;}
+        if(detailPath){
+          if(key.name==="escape"||key.name==="backspace"){detailPath="";detailData=undefined;detailEpoch++;detailLoading=false;}
+          else if(key.name==="p")paused=!paused;
+          else if(key.name==="f")following=!following;
+          else if(key.name==="o"){newestFirst=!newestFirst;following=true;}
+          else if(key.name==="end"){following=true;}
+          else if(key.name==="home"){following=false;detailOffset=0;}
+          else if(["up","k","down","j","pageup","pagedown"].includes(key.name??"")){
+            following=false;
+            const direction=["up","k","pageup"].includes(key.name??"")?-1:1;
+            detailOffset=Math.max(0,detailOffset+direction*(["pageup","pagedown"].includes(key.name??"")?Math.max(1,(process.stdout.rows||30)-9):1));
+          }
+          draw();return;
+        }
+        if(key.name==="return"&&rows[current]){
+          detailPath=rows[current].path;detailData=undefined;detailRevision="";detailError="";detailLoading=false;detailEpoch++;detailOffset=0;following=true;
+          void loadDetail(true);draw();return;
+        }
         if (["up", "k", "down", "j"].includes(key.name ?? "")) {
           const step = ["up", "k"].includes(key.name ?? "") ? -1 : 1;
           selectedPath = rows[Math.max(0, Math.min(rows.length - 1, current + step))]?.path ?? "";

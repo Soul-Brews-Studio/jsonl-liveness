@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix="jsonl-tui-smoke-") as temp:
     project = root / "-fixture-project"
     project.mkdir(parents=True)
     transcript = project / "session123.jsonl"
-    transcript.write_text('{"type":"assistant"}\n')
+    transcript.write_text(json.dumps({'type':'assistant','message':{'role':'assistant','content':'FIRST LIVE MESSAGE'}})+'\n')
     original = transcript.read_bytes()
     original_mtime = transcript.stat().st_mtime_ns
     master, slave = pty.openpty()
@@ -46,6 +46,29 @@ with tempfile.TemporaryDirectory(prefix="jsonl-tui-smoke-") as temp:
 
     try:
         until(b"session123")
+        os.write(master, b"\r")
+        until(b"JSONL LIVE DETAIL")
+        until(b"FIRST LIVE MESSAGE")
+        os.write(master, b"t")
+        until(b"48;2;250;247;240m")
+        assert transcript.read_bytes() == original
+        assert transcript.stat().st_mtime_ns == original_mtime
+        with transcript.open("a") as stream:
+            stream.write(json.dumps({'type':'assistant','message':{'content':'APPENDED LIVE MESSAGE'}})+'\n')
+        until(b"APPENDED LIVE MESSAGE")
+        captured = b""
+        with transcript.open("a") as stream:
+            stream.write(json.dumps({'type':'assistant','message':{'content':'HELD PARTIAL MESSAGE'}}))
+        until(b"partial line held")
+        assert b"HELD PARTIAL MESSAGE" not in captured
+        with transcript.open("a") as stream:
+            stream.write("\n")
+        until(b"HELD PARTIAL MESSAGE")
+        original = transcript.read_bytes()
+        original_mtime = transcript.stat().st_mtime_ns
+        captured = b""
+        os.write(master, b"\x1b")
+        until(b"SESSION ID")
         os.write(master, b"n")
         until(b"Name (empty clears)")
         os.write(master, b"My lab worker\r")
@@ -87,7 +110,7 @@ with tempfile.TemporaryDirectory(prefix="jsonl-tui-smoke-") as temp:
             'const original = process.stdout.write.bind(process.stdout); '
             'let injected = false; '
             'process.stdout.write = ((chunk, ...args) => { '
-            'if (!injected && String(chunk).startsWith("\\x1b[H")) { injected = true; throw new Error("injected render failure"); } '
+            'if (!injected && String(chunk).includes("\\x1b[H")) { injected = true; throw new Error("injected render failure"); } '
             'return original(chunk, ...args); }); '
             'try { await watchTui(' + json.dumps(str(root)) + ', defaults); } '
             'catch (error) { console.log("RESTORED_RAW_" + Boolean(process.stdin.isRaw)); }'
@@ -99,7 +122,7 @@ with tempfile.TemporaryDirectory(prefix="jsonl-tui-smoke-") as temp:
         assert b"\x1b[?1049l" in captured and b"\x1b[?25h" in captured
         process.wait(timeout=4)
         print("PTY failure-path PASS: injected rendering error restores raw mode, cursor and screen")
-        print("PTY smoke PASS: rename, persistence, pause, JSON ID/name, clear, terminal restore; transcript unchanged")
+        print("PTY smoke PASS: Enter/live append/Esc, Paper theme, rename, persistence, pause, JSON ID/name, clear, terminal restore; transcript unchanged")
     finally:
         if process.poll() is None:
             process.terminate()
