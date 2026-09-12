@@ -529,3 +529,20 @@ Opening details uses the existing larger bounded tail. No automatic file hashing
 Proof: `bun test` and `python3 tui-timeline-smoke.py` use isolated fixtures;
 the smoke test checks live appends, partial-line holdback, filters, navigation,
 pause, and terminal cleanup without modifying real transcripts.
+
+## Workspace navigation and Claude Code return link
+
+Sessions and Live Timeline share a persistent desktop sidebar and a collapsible
+mobile Menu. Navigation preserves the selected backend and supports browser
+Back/Forward. The first project/session field is unchanged.
+
+The Claude Code sidebar shortcut can pass its current route:
+
+```text
+http://127.0.0.1:47881/?view=timeline&returnTo=http%3A%2F%2F127.0.0.1%3A4318%2F%23%2Fsessions%2FSESSION_ID
+```
+
+**Back to Claude Code** returns to that session. Without a return route it opens
+the local Claude sessions list. Only localhost/127.0.0.1 port 4318 routes are
+accepted; arbitrary origins and embedded credentials are rejected. This is
+ordinary same-tab navigation, not an iframe, proxy, or new backend.

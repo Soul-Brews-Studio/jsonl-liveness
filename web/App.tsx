@@ -1,3 +1,4 @@
+import { WorkspaceNavigation } from "./components/WorkspaceNavigation";
 import { Timeline } from "./components/Timeline";
 import { useEffect, useState } from "react";
 import { normalizeHost } from "../host";
@@ -48,7 +49,7 @@ export function App() {
   const [theme,setTheme]=useState(()=>initialTheme(saved(themeKey)));
   useEffect(()=>{document.documentElement.dataset.theme=theme;remember(themeKey,theme);},[theme]);
   useEffect(()=>{if(connection){setHost(connection.host);remember(hostKey,connection.host);}},[connection]);
-  return <div id="app-shell" className="mx-auto max-w-[1800px] p-4 md:p-8 xl:flex xl:h-dvh xl:flex-col">
+  return <div className="workspace-frame"><WorkspaceNavigation/><div id="app-shell" className="mx-auto max-w-[1800px] p-4 md:p-8 xl:flex xl:h-dvh xl:flex-col">
     <header className="mb-6 flex shrink-0 flex-wrap items-start justify-between gap-5"><div><h1 className="text-2xl font-semibold tracking-tight"><a id="home" href={homeURL().href} aria-label="JSONL Liveness home" className="rounded-sm hover:text-accent" onClick={e=>{if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();const url=homeURL();if(url.href!==location.href)history.pushState(null,"",url);window.dispatchEvent(new window.PopStateEvent("popstate"));}}>JSONL Liveness</a></h1><p className="mt-2 text-sm text-muted">Your sessions, as they happen. Your names. Your backend.</p></div><fieldset><legend className="mb-1 text-xs font-medium">Theme</legend><div id="theme-choices" className="flex flex-wrap gap-2">{themes.map(option=><button key={option.value} id={`theme-${option.value}`} type="button" aria-pressed={theme===option.value} onClick={()=>setTheme(option.value)}>{option.label}</button>)}</div></fieldset></header>
     <form id="connect-form" className="grid shrink-0 items-end gap-3 border-b border-line pb-5 md:grid-cols-[1.1fr_1fr_auto]" onSubmit={e=>{e.preventDefault();try{const next=normalizeHost(host);if(next!==connection?.host){const url=new URL(location.href);url.searchParams.delete("session");url.searchParams.delete("path");history.replaceState(null,"",url);}setConnection({host:next,token,id:(connection?.id??0)+1});setError("");}catch(failure){setError(String(failure));}}}>
       <label className="text-xs font-medium">Backend host<input id="host" placeholder="localhost:47881" required value={host} onChange={e=>{setHost(e.target.value);setToken("");}} spellCheck={false}/></label>
@@ -57,5 +58,5 @@ export function App() {
     </form>
     {error&&<p role="alert" className="my-4 text-danger">{error}</p>}
     {connection&&<Workspace key={connection.id} host={connection.host} token={connection.token}/>}
-  </div>;
+  </div></div>;
 }

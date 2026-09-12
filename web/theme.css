@@ -116,3 +116,23 @@ tr[data-new=true] .arrival-badge {animation:arrival-badge 1.5s ease-in-out;}
 .session-button.project-color-5 {color:var(--project-5);}
 .session-button.project-color-6 {color:var(--project-6);}
 .session-button.project-color-7 {color:var(--project-7);}
+
+/* Shared navigation remains available across the session table and timeline. */
+.workspace-frame {display:grid;grid-template-columns:210px minmax(0,1fr);min-height:100dvh;}
+.workspace-navigation {position:sticky;top:0;height:100dvh;background:var(--surface);border-right:1px solid var(--line);padding:1.25rem .75rem;}
+.workspace-brand {display:flex;align-items:center;justify-content:space-between;padding:.5rem;font-weight:600;}
+.workspace-links {display:flex;flex-direction:column;gap:.4rem;margin-top:1.25rem;}
+.workspace-links a {display:block;border-radius:.375rem;padding:.75rem;font-size:.875rem;}
+.workspace-links a:hover {background:var(--panel);}
+.workspace-links a[aria-current=page] {background:var(--selected);color:var(--accent);font-weight:600;}
+.workspace-links .workspace-return {margin-top:1rem;border-top:1px solid var(--line);border-radius:0;}
+.workspace-links p {padding:.5rem .75rem;font-size:.75rem;line-height:1.6;color:var(--muted);}
+.workspace-menu-toggle {display:none;}
+.workspace-frame #app-shell {width:100%;min-width:0;}
+@media(max-width:900px){
+ .workspace-frame {display:block;}
+ .workspace-navigation {position:relative;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:.5rem 1rem;}
+ .workspace-menu-toggle {display:block;}
+ .workspace-links {display:none;margin-top:.5rem;}
+ .workspace-links.is-open {display:flex;}
+}
