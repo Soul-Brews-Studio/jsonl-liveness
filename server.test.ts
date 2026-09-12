@@ -122,3 +122,37 @@ test("serves the browser bundle and rejects a shell without its JavaScript", asy
     finally { noWeb.stop(); }
   });
 });
+
+test("timeline API is authenticated, bounded, cached, project-filtered and read-only", async () => {
+  await fixture(async (root,file,store) => {
+    await writeFile(file, JSON.stringify({type:"assistant",timestamp:"2026-09-12T01:00:00Z",content:"First line\nSecond line"})+"\n");
+    const before = await stat(file), bytes = await readFile(file);
+    const running = await startServer({root,port:0,namesFile:store,token:"timeline-token"});
+    const headers = {Authorization:"Bearer timeline-token"};
+    try {
+      expect((await fetch(`${running.url}/api/timeline`)).status).toBe(401);
+      expect((await fetch(`${running.url}/api/timeline`,{headers:{...headers,Origin:"https://evil.example"}})).status).toBe(403);
+      const result = await fetch(`${running.url}/api/timeline`,{headers});
+      expect(result.status).toBe(200);
+      expect(result.headers.get("cache-control")).toBe("no-store");
+      const timeline = await result.json();
+      expect(timeline.rows).toHaveLength(1);
+      expect(timeline.rows[0].text).toBe("First line\nSecond line");
+      expect(timeline.rows[0].sessionId).toBe("session123");
+      expect(timeline.reads).toBe(1);
+      expect((await (await fetch(`${running.url}/api/timeline?limit=20`,{headers})).json()).limit).toBe(20);
+      expect((await fetch(`${running.url}/api/timeline?limit=-1`,{headers})).status).toBe(400);
+      expect((await fetch(`${running.url}/api/timeline?limit=100000`,{headers})).status).toBe(400);
+      expect((await (await fetch(`${running.url}/api/timeline`,{headers})).json()).reads).toBe(0);
+      const project = encodeURIComponent(timeline.rows[0].project);
+      expect((await (await fetch(`${running.url}/api/timeline?project=${project}`,{headers})).json()).rows).toHaveLength(1);
+      expect((await (await fetch(`${running.url}/api/timeline?project=${project}-not-exact`,{headers})).json()).rows).toHaveLength(0);
+      expect((await fetch(`${running.url}/api/timeline?project=${"x".repeat(4097)}`,{headers})).status).toBe(400);
+      expect(await readFile(file)).toEqual(bytes);
+      expect((await stat(file)).mtimeMs).toBe(before.mtimeMs);
+      await writeFile(store,"corrupt");
+      await expect(running.service.refresh()).rejects.toThrow();
+      expect((await fetch(`${running.url}/api/timeline`,{headers})).status).toBe(503);
+    } finally { running.stop(); }
+  });
+});

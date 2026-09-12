@@ -55,3 +55,39 @@
   .metadata dt {color:var(--muted);}.metadata dd {overflow-wrap:anywhere;}
   #connection[data-state=live] {color:var(--cool);}#connection[data-state=error] {color:var(--danger);}
 }
+
+/* Timeline owns no nested scroll box; narrow screens stack cells in one grid. */
+#app-shell:has(#workspace[data-view=timeline]) {height:auto;min-height:100dvh;display:block;}
+.timeline-grid th,.timeline-grid td {border:1px solid var(--line);padding:1rem;overflow-wrap:anywhere;}
+.timeline-grid pre {overflow-wrap:anywhere;}
+.timeline-grid tbody tr {--row-bg:var(--surface);background-color:var(--row-bg);}
+.timeline-grid tbody tr:nth-child(even) {--row-bg:var(--panel);}
+@keyframes timeline-arrival {0%,100% {background-color:var(--row-bg);} 25%,55% {background-color:var(--selected);}}
+.timeline-grid tr[data-new=true] {animation:timeline-arrival 1.5s ease-in-out;}
+@media (prefers-reduced-motion:reduce) {.timeline-grid tr[data-new=true] {animation:none;background:var(--selected);}}
+@media (max-width:767px) {
+  .timeline-grid,.timeline-grid tbody {display:block;}
+  .timeline-grid colgroup {display:none;}
+  .timeline-grid thead {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+  .timeline-grid tr {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+  .timeline-grid td {min-width:0;margin-top:-1px;}
+  .timeline-grid td:nth-child(3),.timeline-grid td:nth-child(4) {grid-column:1 / -1;}
+  .timeline-grid td:nth-child(2) {border-left:0;}
+}
+
+/* Event and metadata cells grow naturally; only the document scrolls. */
+.timeline-grid .timeline-event {min-width:0;}
+
+.timeline-checkbox-label {display:inline-flex;align-items:center;gap:.45rem;font-size:.8125rem;line-height:1.25rem;cursor:pointer;}
+.timeline-checkbox {display:inline-block!important;width:1rem!important;height:1rem!important;flex:0 0 auto;margin:0!important;padding:0!important;appearance:auto;border:initial;border-radius:initial;background:initial;accent-color:var(--accent);}
+
+/* Home uses the same gentle arrival cue, but only for a changed message. */
+.session-row {--row-bg:transparent;}
+.session-row[data-selected=true] {--row-bg:var(--selected);}
+.session-row:hover {--row-bg:var(--panel);}
+.session-row[data-new=true] {animation:timeline-arrival 1.5s ease-in-out;}
+@media (prefers-reduced-motion:reduce) {.session-row[data-new=true] {animation:none;background:var(--selected);}}
+
+@keyframes arrival-badge {0%,100% {opacity:0;} 25%,55% {opacity:1;}}
+tr[data-new=true] .arrival-badge {animation:arrival-badge 1.5s ease-in-out;}
+@media (prefers-reduced-motion:reduce) {tr[data-new=true] .arrival-badge {animation:none;opacity:1;}}

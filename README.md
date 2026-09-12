@@ -13,10 +13,60 @@ write does not prove a new chat message arrived or that an agent is working.
 
 ## See it live
 
+The home table puts the latest recorded messages first. A newly arrived or changed
+message briefly fades its highlight and New badge in, then out; file touches and alias changes do not.
 Click a session row to open its **live popup**. Complete messages refresh every
-**1 second**; choose **Newest first** or **Jump to latest** to follow activity.
+**2 seconds**; choose **Newest first** or **Jump to latest** to follow activity.
 
 ![Live session popup with newest-first messages and Van Gogh theme](tutorials/images/03-live-append.png)
+
+### Timeline: one table, no popup
+
+Open **Timeline**, or go directly to `http://127.0.0.1:47881/?view=timeline`.
+Each event gets its own comfortable multiline row with **project/directory**,
+**recorded date/time**, **session ID**, and **message or tool text**. Multiple
+rows can belong to the same session. Content is readable inline: no session
+popup, sidebar, or extra click is required.
+
+- **All projects** or one exact project; search messages, names, IDs and paths.
+- **New events → At the top** is the default: new arrivals appear above existing
+  rows. Choose **At the bottom** for a downward stream. New rows fade their highlight and New badge in, then back out;
+  Reduce Motion disables the animation. Existing rows do not animate on every poll.
+- **Events → 20 / 50 / 100** caps visible rows (default 50), also available as
+  `?view=timeline&limit=20`. Oldest arrivals drop out when the selected limit is reached.
+- **Show events** uses independent checkboxes. Leave any combination of
+  **Human**, **AI output**, and **Tools & other** enabled; the last includes tool
+  calls/results, workflow entries, and system metadata. All three start checked.
+- **Show sources** independently checks **Main sessions** and
+  **Subagents & workflows** (subagent, workflow agent, and journal files).
+  Both start checked. These filters do not trigger a hash or reread unchanged
+  JSONL tails.
+- **Refresh** clears the accumulated feed and loads the latest selected batch again.
+  A page reload starts a fresh feed too.
+- The page owns the scrollbar; events grow to their complete bounded text rather
+  than clipping detail inside nested event scrollbars. Row/column gridlines and
+  odd/even zebra colors separate cells; narrow screens stack metadata above the
+  event.
+- Scroll away to read without being pulled back. **Follow latest** / **new entries**
+  returns to the live edge. **Pause**, **Resume** and **Back to controls** are available.
+- **Table** or the **JSONL Liveness** title returns to the original overview.
+  Browser Back/Forward and a reload preserve `?view=timeline`.
+- Paper, Midnight and Van Gogh themes apply to the same reusable component.
+
+The feed is deliberately bounded: **50 most recently messaged files**, **64 KiB
+of tail per file**, **20/50/100 visible events**, and **3,000 characters per event**. Project
+filtering happens before the file limit. The existing decoder also limits each
+file to 100 records/events. Shortened text and response limits are labeled;
+older history may be absent. This is complete-event polling every **2 seconds**,
+not token streaming. The initial batch is chronological; newly observed events append in arrival
+order (their recorded timestamps remain visible). Touching a file does not create an event. Age-only polls do not request another timeline; changed
+stat revisions invalidate the cache without calculating a hash.
+
+For a safe demonstration, run `bun tutorials/fixtures.ts`, start a backend with
+`--root .local/tutorial-projects`, open Timeline and run
+`bun tutorials/fixtures.ts --append`. A three-line synthetic message appears
+inline automatically. Add `--long` to the append command to demonstrate a tall
+event with its own scrollbar. Never append demo events to real transcripts.
 
 ### Quick walkthrough
 
@@ -66,7 +116,8 @@ class: hot <2m, warm <15m, cool <2h, otherwise dead. Future mtimes have age zero
 line rather than terminal escape codes. JSON includes files, class counts, scan
 time, and read errors; one-shot read errors produce exit status 1.
 
-The root defaults to `~/.claude/projects`. Files are sorted freshest first.
+The root defaults to `~/.claude/projects`. Files are sorted by recorded message time;
+file freshness is shown separately.
 Project names decode directory hyphens to slashes (inherently ambiguous for
 original hyphens); no transcript bodies are used to guess project names.
 Tiers distinguish session, subagent, workflow-journal, and workflow-agent.
@@ -86,7 +137,7 @@ Tests create and touch isolated temporary fixtures, never real transcripts.
 
 The table uses compact project labels (last two decoded path segments), local
 last-write time, human-readable age/size, distinct agent IDs, and last-event labels.
-Watch mode limits rows to terminal height (freshest first); `--once` shows every
+Watch mode limits rows to terminal height (latest recorded messages first); `--once` shows every
 file. JSON retains full paths and adds the optional name plus full ID. Labels are path-derived, not
 verified agent names; typed-vs-background activity cannot be inferred from a tail.
 
@@ -111,7 +162,7 @@ Press **Enter** to open live message and tool details, or press **n** to name th
 - **q** or **Ctrl-C** exits and restores the terminal.
 
 IDs remain visible and unchanged. The selected row shows its full ID and path.
-Names are stored in ignored `.local/names.json`, keyed by absolute file path
+Names are stored in ignored `app/.local/names.json`, keyed by absolute file path
 to disambiguate repeated journal or agent IDs. They are local to this checkout;
 transcripts are never modified. Names allow up to 80 characters. Saving uses
 atomic replacement and refuses malformed stores. Avoid concurrent renames from
@@ -138,7 +189,7 @@ The UI reports hot/warm/cool/dead, not inferred Working/Needs input/Completed.
   oldest-first/newest-first. Manual scrolling stops following.
 - The TUI always uses a dark background and light text. **Paper is web-only**.
   Terminal colors are reset on exit.
-- **p** pauses/resumes 1-second polling. Opening a detail still reads its initial
+- **p** pauses/resumes 2-second polling. Opening a detail still reads its initial
   bounded snapshot while paused.
 
 Works both locally and with `--host`. Unchanged stat revisions do not reread
@@ -199,7 +250,7 @@ and keep it in memory only.
 
 Local `--root` and threshold flags configure the backend (`--serve`) or direct
 local scanner; they cannot be combined with `--host`. Web/TUI clients share the
-backend's root, classes, saved aliases and cached non-overlapping 1-second scans.
+backend's root, classes, saved aliases and cached non-overlapping 2-second scans.
 Use `--host` for all clients when sharing names through one running backend.
 
 ### HTTP API
@@ -210,8 +261,9 @@ All API responses are JSON except `/api/events`; API requests require
 | Route | Behavior |
 |---|---|
 | `GET /api/health` | Health, version, scan time and read-error count (503 on failure) |
-| `GET /api/snapshot` | Existing snapshot envelope, files include full `id` and `name` |
-| `GET /api/session/preview?path=…` | Last readable user/assistant text from a 64 KiB tail; visible rows only, cached by file revision |
+| `GET /api/snapshot` | Snapshot envelope, files include full `id`, `name`, cached message and optional PID evidence |
+| `GET /api/timeline?project=…&limit=50` | Full-width timeline data: 20/50/100 events (200 default API ceiling) from 50 sessions, exact optional project filter, cached 64 KiB tails |
+| `GET /api/session/preview?path=…` | Last readable user/assistant text from a 64 KiB tail; shared snapshot cache by file revision |
 | `GET /api/session/fingerprint?path=…` | On-demand full-file SHA-256, cached for unchanged metadata; `&force=1` explicitly rechecks |
 | `GET /api/session/detail?path=…&bytes=262144` | Selected file: bounded recent messages/tools, start/end/update times; `bytes` may also be `1048576` |
 | `PUT /api/names` | JSON `{ "path": "<path from snapshot>", "name": "alias" }`; empty clears |
@@ -224,7 +276,9 @@ agent-execution, deletion, arbitrary-file or terminal-control endpoint exists.
 
 ### Research and checks
 
-This app uses the host-selection pattern only; it does not implement hosted Oracle Studio knowledge APIs.
+See [Studio protocol research](research/STUDIO-PROTOCOL.md) for deployed bundle
+evidence and the user's scope clarification: this is our web/TUI with Studio's
+host-selection pattern, not a clone of its knowledge APIs.
 
 ```sh
 bun test
@@ -241,6 +295,7 @@ copy of Happy DOM; it is **not** an app dependency and does not install anything
 
 ```sh
 HAPPY_DOM_PATH=/absolute/path/to/happy-dom/lib/index.js bun browser-smoke.ts
+HAPPY_DOM_PATH=/absolute/path/to/happy-dom/lib/index.js bun timeline-browser-smoke.ts
 ```
 
 It runs the actual bundled frontend against two real fixture HTTP backends and
@@ -263,7 +318,7 @@ An explicit **Back to sessions** button is shown in detail view. Browser
 so refresh restores it. Duplicate journal/agent IDs include a disambiguating
 `path` parameter. A refresh intentionally forgets any memory-only token; re-enter
 it for protected backends. Unknown session URLs show an unavailable state.
-New complete messages appear automatically on the shared 1-second poll cycle
+New complete messages appear automatically on the shared 2-second poll cycle
 (scanner and client cadence can add a cycle of latency). This is **not**
 character/token streaming and it cannot send prompts or control the terminal.
 
@@ -300,6 +355,7 @@ access only with trusted clients. No content is sent to the reference chat UI.
 
 | Component | Responsibility |
 |---|---|
+| `web/components/Timeline.tsx` | Full-width multiline event table, project/search/limit/direction, append highlight, pause/follow, revision-driven requests |
 | `web/components/SessionList.tsx` | Controlled selection, filters, pagination, compact roster/table |
 | `web/components/SessionDialog.tsx` | Native modal, focus trapping/restoration, Close/Esc |
 | `web/components/MessagePreview.tsx` | Bounded per-visible-row recent text |
@@ -320,7 +376,7 @@ import "./web/style.css"; // compiled Tailwind utilities + theme tokens
 <ActivityEvent event={event} />
 ```
 
-Choose **Midnight**, **Van Gogh · Starry Night**, or **Paper** in the Theme selector. The
+Choose **Paper**, **Midnight**, or **Van Gogh · Starry Night** with the one-click Theme buttons. **Paper is the default** when no valid saved preference exists. The
 Van Gogh-inspired palette uses deep blues, sunflower-yellow accents and warm
 cream text. **Paper** uses a warm-white background, dark ink, and a high-contrast
 brown accent for easier daytime reading. Theme choice is remembered locally and does not change your backend,
@@ -329,7 +385,7 @@ selected session or token. There are no remote fonts, images or CSS CDNs.
 All component utilities use semantic tokens (`bg-surface`, `text-ink`,
 `text-muted`, `border-line`, `text-accent`). Add a theme by defining those CSS
 variables under `:root[data-theme=your-theme]` in `web/theme.css`, then add its
-selector option. Rebuild CSS with `bun run build:css`; compiled `web/style.css`
+button entry in `web/theme.ts`. Rebuild CSS with `bun run build:css`; compiled `web/style.css`
 is committed so an installed app can start with `bun run . --serve`. Restart the
 server after changing browser source because Bun bundles JavaScript at startup.
 
@@ -337,7 +393,8 @@ Dependencies were installed from the existing npm cache with
 `npm install --offline --ignore-scripts --no-audit --no-fund`; no external package
 network request was required. `package-lock.json` pins the dependency tree.
 
-See [verification evidence](VERIFICATION.md).
+See [five-lens live-view review](research/LIVE-VIEW-PRISM.md) and
+[verification evidence](research/VERIFICATION.md).
 
 
 ## Fast change checks: time first, hash when requested
@@ -349,10 +406,10 @@ See [verification evidence](VERIFICATION.md).
   Size, ctime and inode also invalidate this cache conservatively; the same
   revision invalidates preview/detail reads and marks a stored hash stale. Ages/classes
   still update on every poll. No hashes are computed by the poller.
-- The first-page **Recent message** column reads only visible rows, at most 64 KiB
-  each, skips trailing system/tool metadata to find user/assistant text, and
-  holds back partial lines. Previews are capped at 240 characters and cached for
-  up to 200 file revisions. It does not scan message history across every file.
+- The first-page **Latest message** column uses shared bounded summaries, at most
+  64 KiB each, skipping trailing system/tool metadata to find user/assistant text.
+  Summaries are read on the cold scan and changed revisions only. Partial lines
+  stay hidden; preview text is capped at 240 characters. No full history is read.
 - **Check SHA-256** is explicit: the backend streams the full file once using a
   1 MiB buffer. Repeated non-forced checks return its cached fingerprint while
   metadata matches; **Recheck SHA-256** forces a fresh check. Changed files are
@@ -384,3 +441,32 @@ can move backward. mtime/size are a cheap change signal, not cryptographic proof
 if timestamps are preserved or content is suspect, request a forced hash check.
 Current caches are in memory and reset on server restart. No database, watcher
 index, or additional source-file writes were introduced.
+
+## Message activity, file touches, and open sessions
+
+The web table and TUI now sort **by the latest recorded user/assistant text
+message**, not filesystem mtime. All messages/files are shown by default; the
+web **Messages <2h** filter uses message time. **File hot/warm/cool/dead** filters
+still use mtime and explicitly describe the file, not conversation activity.
+The TUI **a** key toggles all files / recently touched files; both views remain
+message-time ordered. CLI/TUI stays dark; web themes are independent.
+
+- **Latest message:** last user/assistant text found within the final 64 KiB / 100
+  records. Missing timestamps or messages remain unknown and sort last. Older
+  history may be outside this bounded window; this is not a full-history index.
+- **File touched:** filesystem timestamp. Claude can touch a transcript hourly
+  without adding a message. A file touch does not advance message time.
+- **Open · PID …:** a running Claude process has an explicit matching session-ID
+  argument. Process evidence is refreshed at most every 10 seconds. It reflects
+  process arguments, not proof of current generation or later in-process session
+  switches. Missing/ambiguous matches show **Open: unknown**, never “closed”.
+
+Polling every **2 seconds** checks stat revisions. Bounded message summaries are
+read once on a cold scan and again only for changed revisions, then shared by
+all clients (including previews). Ordinary polling computes **no hashes**.
+Presence checks never infer session identity from cwd or heartbeat timestamps.
+Changing size or timestamps alone does not prove new conversation content.
+
+Regression checks cover touch-without-message, complete append reordering,
+partial-line holdback, cache reuse, and explicit PID matching. The browser smoke
+also verifies touch-only refresh preserves row order and never requests hashes.

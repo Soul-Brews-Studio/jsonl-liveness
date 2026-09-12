@@ -1,6 +1,6 @@
 // Local DOM integration test (not a visual browser test). Uses an already-installed
 // dev-only happy-dom via HAPPY_DOM_PATH; no runtime dependency or installation.
-import { mkdtemp, mkdir, writeFile, appendFile, readFile, stat, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, appendFile, readFile, stat, rm, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startServer } from "./server";
@@ -67,6 +67,8 @@ try {
   const submit = (id: string) => $(id).dispatchEvent(new window.Event("submit",{bubbles:true,cancelable:true}));
   const input = async (id: string,value: string) => {Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,"value")!.set!.call($(id),value);$(id).dispatchEvent(new window.Event("input",{bubbles:true}));await Bun.sleep(0);};
   await until(()=>!!$("error"),"React mount");
+  assert(window.document.documentElement.dataset.theme==="paper","Paper is not the default theme");
+  assert($("theme-paper").getAttribute("aria-pressed")==="true","Paper theme choice is not selected");
   await until(()=>$("error").textContent.includes("Token required"),"auth error");
   await input("token","test-token");submit("connect-form");
   await until(()=>$("rows").textContent.includes("beta456"),"selected backend snapshot");
@@ -100,13 +102,13 @@ try {
   await input("token","test-token");submit("connect-form");
   await until(()=>$("activity-list")?.textContent.includes("Assistant activity"),"detail URL restored after refresh/reconnect");
   assert($("workspace").dataset.view==="live" && $("detail-id").textContent==="beta456","refresh lost detail route");
-  $("theme").value="vangogh";$("theme").dispatchEvent(new window.Event("change",{bubbles:true}));
+  $("theme-vangogh").click();
   await until(()=>window.document.documentElement.dataset.theme==="vangogh","Van Gogh theme");
   assert(window.localStorage.getItem("jsonl-liveness-theme")==="vangogh","theme not persisted");
-  $("theme").value="paper";$("theme").dispatchEvent(new window.Event("change",{bubbles:true}));
+  $("theme-paper").click();
   await until(()=>window.document.documentElement.dataset.theme==="paper","Paper theme");
   assert(window.localStorage.getItem("jsonl-liveness-theme")==="paper","Paper theme not persisted");
-  $("theme").value="vangogh";$("theme").dispatchEvent(new window.Event("change",{bubbles:true}));
+  $("theme-vangogh").click();
   await until(()=>window.document.documentElement.dataset.theme==="vangogh","restore Van Gogh theme");
   $("dialog-home").click();await until(()=>$("workspace").dataset.view==="table","popup title link returns home");
   assert(window.document.activeElement?.dataset.sessionPath,"Home did not restore row focus after refresh");
@@ -149,6 +151,21 @@ try {
   await second.service.refresh();
   $("refresh").click();
   await until(()=>$("rows").textContent.includes("other789"),"second row");
+  assert($("rows").textContent.includes("Open: unknown"),"missing PID must be unknown, not closed");
+  assert($("rows").parentElement.textContent.includes("File touched"),"file timestamp label still ambiguous");
+  const order=()=>Array.from($("rows").querySelectorAll("[data-session-path]")).map((button:any)=>button.dataset.sessionPath);
+  const priorOrder=order();const priorHashes=hashes();
+  await until(()=>!$("rows").querySelector("tr[data-new=true]"),"initial highlight settles");
+  await utimes(otherFile,new Date(),new Date(Date.now()+1000));
+  await second.service.refresh();$("refresh").click();
+  await until(()=>!$("refresh").disabled,"touch refresh complete");
+  assert(JSON.stringify(order())===JSON.stringify(priorOrder),"touch-only change reordered messages");
+  assert(!$("rows").querySelector("tr[data-new=true]"),"file touch incorrectly flashed a new-message row");
+  await appendFile(otherFile,JSON.stringify({type:"assistant",timestamp:"2026-09-12T01:00:00Z",message:{content:"Newest conversation message"}})+"\n");
+  await second.service.refresh();$("refresh").click();
+  await until(()=>order()[0]===otherFile,"new message moves above older messages");
+  await until(()=>$("rows").querySelector("tr")?.dataset.new==="true","new top row fades in");
+  assert(hashes()===priorHashes,"touch/message polling unexpectedly hashed a file");
   const selectPath = (path: string) => Array.from(window.document.querySelectorAll("[data-session-path]")).find((button: any)=>button.dataset.sessionPath===path) as any;
   const select = async (path: string) => {selectPath(path).click();await until(()=>$("detail-id")?.textContent===path.split("/").at(-1)!.replace(/\.jsonl$/,""),"React selected session");};
   await select(otherFile);

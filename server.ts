@@ -91,6 +91,14 @@ export async function startServer(options: ServerOptions) {
           if (service.error) return json({error:service.error, stale:true}, 503);
           return json(await service.snapshot());
         }
+        if (url.pathname === "/api/timeline" && request.method === "GET") {
+          if (service.error) return json({error:service.error, stale:true}, 503);
+          const project = url.searchParams.get("project") ?? undefined;
+          if (project && project.length > 4096) return json({error:"Project filter is too long"}, 400);
+          const limit = Number(url.searchParams.get("limit") ?? 200);
+          if (![20,50,100,200].includes(limit)) return json({error:"Expected limit=20, 50, 100 or 200"}, 400);
+          return json(await service.timeline(project,limit));
+        }
         if (["/api/session/detail","/api/session/preview","/api/session/fingerprint"].includes(url.pathname) && request.method === "GET") {
           const path = url.searchParams.get("path");
           const bytes = Number(url.searchParams.get("bytes") ?? DETAIL_BYTES);

@@ -5,7 +5,8 @@ const root=resolve(import.meta.dir,"../.local/tutorial-projects/-tutorial-demo")
 const file=resolve(root,"tutorial-session.jsonl");
 const line=(value:unknown)=>JSON.stringify(value)+"\n";
 if(process.argv.includes("--append")) {
-  await appendFile(file,line({type:"assistant",timestamp:new Date().toISOString(),message:{role:"assistant",content:"A new synthetic message arrived while the live view was open."}}));
+  const longText=Array.from({length:50},(_,i)=>`Synthetic output line ${i+1}: read this event without growing the table row.`).join("\n");
+  await appendFile(file,line({type:"assistant",timestamp:new Date().toISOString(),message:{role:"assistant",content:process.argv.includes("--long")?longText:"A new synthetic message arrived while the live view was open.\nThe timeline keeps this second line readable inline.\nNo popup needed — keep reading in the same table."}}));
   console.log("Appended one synthetic tutorial message.");
 } else {
   await mkdir(root,{recursive:true});

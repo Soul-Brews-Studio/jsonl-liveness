@@ -19,5 +19,14 @@ export function isSnapshot(value: unknown): value is Snapshot {
   return typeof data.scannedAt === "string" && Number.isFinite(Date.parse(data.scannedAt)) && typeof data.scanMs === "number" &&
     !!data.counts && classes.every(state=>typeof data.counts[state] === "number") && Array.isArray(data.errors) && data.errors.every(error=>typeof error === "string") &&
     Array.isArray(data.files) && data.files.every(file=>file && typeof file.path === "string" && typeof file.project === "string" && typeof file.tier === "string" && (file.revision == null || typeof file.revision === "string") &&
-      classes.includes(file.class) && Number.isFinite(file.age) && Number.isFinite(file.size) && (file.name == null || typeof file.name === "string") && (file.id == null || typeof file.id === "string"));
+      classes.includes(file.class) && Number.isFinite(file.age) && Number.isFinite(file.size) && (file.name == null || typeof file.name === "string") && (file.id == null || typeof file.id === "string") &&
+      (file.message == null || (typeof file.message.text === "string" && typeof file.message.truncated === "boolean" &&
+        (file.message.role==null || typeof file.message.role==="string") &&
+        (file.message.timestamp==null || (typeof file.message.timestamp==="string" && Number.isFinite(Date.parse(file.message.timestamp)))))) &&
+      (file.presence==null || (["open","unknown"].includes(file.presence.state) && Array.isArray(file.presence.pids) && file.presence.pids.every(pid=>Number.isSafeInteger(pid)&&pid>0))));
+}
+
+/** Compare bounded message content, never filesystem heartbeat timestamps. */
+export function messageRevision(file:Pick<FileRow,"message">):string|undefined {
+  return file.message?.text ? JSON.stringify([file.message.role,file.message.timestamp,file.message.text]) : undefined;
 }

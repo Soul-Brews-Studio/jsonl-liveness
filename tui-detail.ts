@@ -1,3 +1,4 @@
+import { openLabel } from "./session-status";
 import type { SessionDetail } from "./details";
 import { sessionId } from "./names";
 import { shortProject } from "./display";
@@ -13,7 +14,7 @@ export interface DetailView {
 }
 /** Bounded plain-text frame. Transcript control codes can never reach the terminal. */
 export function renderTuiDetail(view: DetailView) {
-  const width=Math.max(1,view.width-1),limit=Math.max(1,view.height-9),body:string[]=[];
+  const width=Math.max(1,view.width-1),limit=Math.max(1,view.height-11),body:string[]=[];
   const wrap=(text:string)=>{
     for(const line of text.split(/\r?\n/)) {
       const chars=Array.from(safe(line));
@@ -31,10 +32,12 @@ export function renderTuiDetail(view: DetailView) {
   const maxOffset=Math.max(0,body.length-limit);
   const offset=view.following?(view.newestFirst?0:maxOffset):Math.max(0,Math.min(view.offset,maxOffset));
   const header=[
-    `JSONL LIVE DETAIL · ${view.paused?"PAUSED":"every 1s"} · Esc back`,
+    `JSONL LIVE DETAIL · ${view.paused?"PAUSED":"every 2s"} · Esc back`,
     `${view.name||shortProject(view.file?.project??"")||"Unnamed"} · ${sessionId(view.path)}`,
+    `${openLabel(view.file??{})} · open ≠ working`,
+    `Latest message ${time(view.file?.message?.timestamp)}`,
     `Start ${time(view.data?.startedAt)} · End ${time(view.data?.endedAt)}`,
-    `File updated ${time(view.data?.lastUpdatedAt??view.file?.modifiedAt)} · ${view.file?.class??"unavailable"}`,
+    `File touched ${time(view.data?.lastUpdatedAt??view.file?.modifiedAt)} · ${view.file?.class??"unavailable"}`,
     "",
   ];
   const status=view.error||`${view.newestFirst?"Newest first":"Oldest first"} · ${view.following?"FOLLOW":"manual"} · ${offset+1}–${Math.min(body.length,offset+limit)}/${body.length} lines${view.data?.partialLineHeld?" · partial line held":""}${view.data?.hasOlder?" · older history omitted":""}`;

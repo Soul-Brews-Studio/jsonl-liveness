@@ -39,12 +39,12 @@ export function useBackend(host: string, token: string) {
     let timer: ReturnType<typeof setTimeout>;
     const tick=async()=>{
       const start=performance.now();await refresh(false);
-      if(!controller.signal.aborted)timer=setTimeout(tick,Math.max(100,1000-(performance.now()-start)));
+      if(!controller.signal.aborted)timer=setTimeout(tick,Math.max(100,2000-(performance.now()-start)));
     };
     void tick();
     return()=>{controller.abort();clearTimeout(timer);};
   },[refresh]);
   function pause() {pausedRef.current=!pausedRef.current;setPaused(pausedRef.current);if(!pausedRef.current)void refresh();}
-  const status=error ? (snapshot ? "Disconnected · last snapshot shown" : "Disconnected") : paused ? "Paused" : snapshot ? "Live · every 1s" : "Connecting…";
+  const status=error ? (snapshot ? "Disconnected · last snapshot shown" : "Disconnected") : paused ? "Paused" : snapshot ? "Live · every 2s" : "Connecting…";
   return {snapshot,error,paused,busy,pause,refresh,request,status};
 }

@@ -1,26 +1,26 @@
+import { latestMessages, openLabel } from "./session-status";
 import { renderTuiDetail } from "./tui-detail";
 import type { SessionDetail } from "./details";
 import { emitKeypressEvents } from "node:readline";
 import { ageLabel, shortProject, sizeLabel } from "./display";
-import { type scan, type Thresholds } from "./liveness";
+import { type Thresholds } from "./liveness";
 import { sessionId, type Names } from "./names";
-import { localSource, snapshotNames, type SessionSource } from "./source";
+import { localSource, snapshotNames, type SessionSource, type Snapshot } from "./source";
 
-type Snapshot = Awaited<ReturnType<typeof scan>>;
 type File = Snapshot["files"][number];
 const clean = (value: string) => value.replace(/[\x00-\x1f\x7f-\x9f]/g, "?");
 export function matchingFiles(snapshot: Snapshot, names: Names, all: boolean, query: string): File[] {
-  return snapshot.files.filter(file => (all || file.class !== "dead") &&
+  return latestMessages(snapshot.files).filter(file => (all || file.class !== "dead") &&
     `${sessionId(file.path)} ${names[file.path] ?? ""} ${file.project} ${file.tier}`.toLowerCase().includes(query.toLowerCase()));
 }
 export function renderTui(snapshot: Snapshot, names: Names, files: File[], selected: number, width: number, height: number, footer: string): string {
-  const limit = Math.max(1, height - 13);
+  const limit = Math.max(1, height - 14);
   const offset = Math.max(0, selected - limit + 1);
   const lines = [
     `JSONL LIVENESS · ${snapshot.files.length} files · ${snapshot.scanMs}ms scan`,
     Object.entries(snapshot.counts).map(([state, count]) => `${count} ${state}`).join(" · "),
     "",
-    "  SESSION ID      NAME / PROJECT                  LAST EVENT          AGE     SIZE",
+    "  SESSION ID      NAME / PROJECT                OPEN       MSG AGE  FILE AGE    SIZE",
   ];
   let previous = "";
   for (let i = offset; i < Math.min(files.length, offset + limit); i++) {
@@ -30,8 +30,10 @@ export function renderTui(snapshot: Snapshot, names: Names, files: File[], selec
     const rawId = sessionId(file.path);
     const id = rawId.startsWith("agent-") ? `a:${rawId.slice(6, 14)}` : rawId.slice(0, 12);
     const label = names[file.path] || shortProject(file.project);
-    const event = file.type ? `${file.type}${file.role && file.role !== file.type ? `/${file.role}` : ""}` : "—";
-    const row = `${i === selected ? ">" : " "} ${id.padEnd(14)}  ${clean(label).slice(0, 28).padEnd(28)}  ${clean(event).slice(0, 18).padEnd(18)} ${ageLabel(file.age).padStart(4)} ${sizeLabel(file.size).padStart(7)}  ${group}`;
+    const messageAt=Date.parse(file.message?.timestamp??"");
+    const messageAge=Number.isFinite(messageAt)?ageLabel(Math.max(0,Date.parse(snapshot.scannedAt)-messageAt)):"?";
+    const open=file.presence?.state==="open"?"yes":"unknown";
+    const row = `${i === selected ? ">" : " "} ${id.padEnd(14)}  ${clean(label).slice(0, 28).padEnd(28)}  ${open.padEnd(8)} ${messageAge.padStart(7)} ${ageLabel(file.age).padStart(9)} ${sizeLabel(file.size).padStart(7)}  ${group}`;
     lines.push(row);
   }
   if (!files.length) lines.push("No matching files. Press a to include dead files, or / to change search.");
@@ -39,10 +41,11 @@ export function renderTui(snapshot: Snapshot, names: Names, files: File[], selec
   lines.push("", `Showing ${files.length ? offset + 1 : 0}–${Math.min(files.length, offset + limit)} of ${files.length} matching files`);
   if (file) {
     lines.push(`${names[file.path] || "Unnamed"} · ${sessionId(file.path)} · ${file.tier} · ${file.class}`);
-    lines.push(`Updated ${file.modifiedAt?new Date(file.modifiedAt).toLocaleString():new Date(Date.parse(snapshot.scannedAt)-file.age).toLocaleString()} · mtimeMs ${file.mtimeMs??"unknown"}`);
+    lines.push(`Message ${file.message?.timestamp?new Date(file.message.timestamp).toLocaleString():"not found in tail"} · ${openLabel(file)}`);
+    lines.push(`File touched ${file.modifiedAt?new Date(file.modifiedAt).toLocaleString():new Date(Date.parse(snapshot.scannedAt)-file.age).toLocaleString()} · mtimeMs ${file.mtimeMs??"unknown"}`);
     lines.push(file.path);
-  } else lines.push("", "");
-  lines.push("Freshness is last write, not Working / Needs input / Completed.");
+  } else lines.push("", "", "");
+  lines.push("File freshness may be heartbeat, not a new message. Open does not mean working.");
   lines.push(footer);
   return lines.slice(0, Math.max(1, height - 1)).map(line => Array.from(clean(line)).slice(0, Math.max(1, width - 1)).join("")).join("\n");
 }
@@ -50,12 +53,12 @@ export function renderTui(snapshot: Snapshot, names: Names, files: File[], selec
 export async function watchTui(root: string, thresholds: Thresholds, source: SessionSource = localSource(root, thresholds)): Promise<void> {
   let snapshot = await source.read();
   let names = snapshotNames(snapshot);
-  let selectedPath = "", query = "", all = false, paused = false, stopped = false, scanning = false;
+  let selectedPath = "", query = "", all = true, paused = false, stopped = false, scanning = false;
   let edit: { kind: "name" | "search"; text: string; path: string } | undefined;
   let saving = false, message = "", timer: ReturnType<typeof setTimeout> | undefined;
   let detailPath="",detailData:SessionDetail|undefined,detailRevision="",detailLoading=false,detailError="",detailEpoch=0;
   let detailOffset=0,following=true,newestFirst=false;
-  const help = "Enter detail · ↑↓/jk move · n name · / find · a all · p pause · q quit";
+  const help = "Enter detail · ↑↓/jk move · n name · / find · a all/touched · p pause · q quit";
   const files = () => matchingFiles(snapshot, names, all, query);
   const index = (rows: File[]) => Math.max(0, rows.findIndex(file => file.path === selectedPath));
   let fail: (error: unknown) => void = error => { throw error; };
@@ -105,7 +108,7 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
     finally {
       scanning = false;
       draw();
-      if (!stopped) timer = setTimeout(refresh, Math.max(100, 1000 - (performance.now() - start)));
+      if (!stopped) timer = setTimeout(refresh, Math.max(100, 2000 - (performance.now() - start)));
     }
   }
   try {
@@ -159,7 +162,7 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
           else if(["up","k","down","j","pageup","pagedown"].includes(key.name??"")){
             following=false;
             const direction=["up","k","pageup"].includes(key.name??"")?-1:1;
-            detailOffset=Math.max(0,detailOffset+direction*(["pageup","pagedown"].includes(key.name??"")?Math.max(1,(process.stdout.rows||30)-9):1));
+            detailOffset=Math.max(0,detailOffset+direction*(["pageup","pagedown"].includes(key.name??"")?Math.max(1,(process.stdout.rows||30)-11):1));
           }
           draw();return;
         }
@@ -189,7 +192,7 @@ export async function watchTui(root: string, thresholds: Thresholds, source: Ses
     process.on("SIGTERM", stop);
     process.stdout.write("\x1b[?1049h\x1b[?25l");
     draw();
-    if (!stopped) timer = setTimeout(refresh, 1000);
+    if (!stopped) timer = setTimeout(refresh, 2000);
   });
   } finally { cleanup(); }
 }

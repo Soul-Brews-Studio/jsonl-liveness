@@ -94,7 +94,7 @@ ${process.env.JSONL_TOKEN ? "Bearer token required for API requests" : "Loopback
       for (const error of result.errors) console.error(error);
     }
     if (once) { if (result.errors.length) process.exitCode = 1; break; }
-    await Bun.sleep(Math.max(0, 1000 - (performance.now() - started)));
+    await Bun.sleep(Math.max(0, 2000 - (performance.now() - started)));
   } while (true);
 }
 main().catch(error => { console.error(String(error)); process.exitCode = 1; });

@@ -3,6 +3,7 @@ import { defaults, type Thresholds } from "./liveness";
 import { readSessionDetail, DETAIL_BYTES } from "./details";
 import { FingerprintCache } from "./fingerprint";
 import { namesPath, validateName } from "./names";
+import { TimelineCache } from "./timeline";
 
 /** One scanner per backend; all HTTP clients share its snapshot. */
 export class LivenessService {
@@ -14,10 +15,11 @@ export class LivenessService {
   private listeners = new Set<(snapshot: Snapshot) => void>();
   private writes: Promise<void> = Promise.resolve();
   private fingerprints=new FingerprintCache();
-  private previews = new Map<string, {revision:string;value:{text:string;role:string|null;timestamp:string|null;truncated:boolean}}>();
+  private timelineCache: TimelineCache;
   error: string | undefined;
   constructor(private root: string, thresholds: Thresholds = defaults, store = namesPath) {
     this.source = localSource(root, thresholds, store);
+    this.timelineCache = new TimelineCache(root);
   }
   async refresh(): Promise<Snapshot> {
     if (this.pending) return this.pending;
@@ -39,9 +41,9 @@ export class LivenessService {
     const tick = async () => {
       const start = performance.now();
       try { await this.refresh(); } catch { /* health reports errors; retry next cycle */ }
-      if (!this.stopped) this.timer = setTimeout(tick, Math.max(100, 1000 - (performance.now() - start)));
+      if (!this.stopped) this.timer = setTimeout(tick, Math.max(100, 2000 - (performance.now() - start)));
     };
-    this.timer = setTimeout(tick, 1000);
+    this.timer = setTimeout(tick, 2000);
   }
   stop() { this.stopped = true; if (this.timer) clearTimeout(this.timer); this.listeners.clear(); }
   subscribe(listener: (snapshot: Snapshot) => void): () => void {
@@ -52,6 +54,9 @@ export class LivenessService {
     if (!(await this.snapshot()).files.some(file => file.path === path)) throw new Error("Unknown session path");
     return readSessionDetail(this.root, path, maxBytes);
   }
+  async timeline(project?: string, limit?: number) {
+    return this.timelineCache.read(await this.snapshot(), project, limit);
+  }
   async fingerprint(path:string,force=false) {
     if(!(await this.snapshot()).files.some(file=>file.path===path))throw new Error("Unknown session path");
     return this.fingerprints.read(this.root,path,force);
@@ -59,13 +64,7 @@ export class LivenessService {
   async preview(path: string) {
     const snapshot=await this.snapshot(), file=snapshot.files.find(file=>file.path===path);
     if(!file)throw new Error("Unknown session path");
-    const revision=file.revision??`${file.size}:${file.mtimeMs??Date.parse(snapshot.scannedAt)-file.age}`;
-    const cached=this.previews.get(path);if(cached?.revision===revision)return cached.value;
-    const detail=await readSessionDetail(this.root,path,64*1024,false);
-    const message=detail.events.findLast(event=>event.kind==="message" && ["user","assistant"].includes(event.role));
-    const value={text:message?.text.slice(0,240)??"",role:message?.role??null,timestamp:message?.timestamp??null,truncated:!!message&&(message.truncated||message.text.length>240)};
-    if(this.previews.size>=200)this.previews.delete(this.previews.keys().next().value!);
-    this.previews.set(path,{revision,value});return value;
+    return file.message??{text:"",role:null,timestamp:null,truncated:false,lastEventAt:null};
   }
   async rename(path: string, name: string) {
     validateName(name);
