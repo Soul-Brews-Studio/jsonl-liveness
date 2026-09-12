@@ -32,11 +32,9 @@ export function messageRevision(file:Pick<FileRow,"message">):string|undefined {
 }
 
 
-// A future or unknown timestamp must not masquerade as recent activity.
-export function recentTime(value: string | null | undefined, now = Date.now()): boolean {
-  const elapsed = now - Date.parse(value ?? "");
-  return elapsed >= 0 && elapsed < 300_000;
-}
+// Exact timestamps belong in session details, not the overview rows.
 export function rowTime(value: string | null | undefined, now = Date.now()): string {
-  return recentTime(value, now) ? age(now - Date.parse(value!)) + " ago" : localTime(value);
+  const elapsed = now - Date.parse(value ?? "");
+  if (!Number.isFinite(elapsed)) return "Not recorded";
+  return elapsed < 0 ? "in " + age(-elapsed) : age(elapsed) + " ago";
 }

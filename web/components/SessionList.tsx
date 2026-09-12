@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessagePreview } from "./MessagePreview";
 import type { Request } from "../useBackend";
 import type { Snapshot } from "../../source";
-import { age, recentTime, rowTime, classes, eventLabel, fullID, lastWrite, localTime, messageRevision, shortProject, size, type FileRow } from "../model";
+import { rowTime, classes, eventLabel, fullID, lastWrite, messageRevision, shortProject, size, type FileRow } from "../model";
 
 export interface SessionListProps {
   snapshot?: Snapshot; selected: string; onSelect: (file: FileRow)=>void;
@@ -38,8 +38,8 @@ export function SessionList({snapshot,selected,onSelect,paused,busy,onPause,onRe
         <td className="p-3"><div className="truncate font-semibold" title={file.project}>{file.project.split("/").filter(Boolean).at(-1)}</div><button className="session-button mt-1 block w-full break-all border-0 bg-transparent p-0 text-left font-mono text-xs" data-session-path={file.path} aria-pressed={selected===file.path} title={fullID(file)} onClick={e=>{e.stopPropagation();onSelect(file);}}>{file.name||fullID(file)}</button>
           <span className="mt-1 block truncate text-xs text-muted">{fresh.has(file.path)&&<span className="arrival-badge text-accent">New · </span>}{openLabel(file)} · {file.tier}</span>
           <span className="mt-1 block break-words text-[10px] text-muted">{file.projectSource==="cwd"?"Recorded cwd: ":"Estimated path: "}{file.project}</span>
-          {!table&&<time className="mt-2 block text-[11px] text-muted" dateTime={lastWrite(file,snapshot!.scannedAt)} title={localTime(lastWrite(file,snapshot!.scannedAt))}>File touched {rowTime(lastWrite(file,snapshot!.scannedAt),Date.parse(snapshot!.scannedAt))}</time>}
-        </td>{table&&<><td className="px-2 text-muted">{shortProject(file.project)}</td><td className={`freshness ${file.class} px-2 capitalize`}>{file.class}</td><td className="px-2 text-muted">{eventLabel(file)}</td><td className="px-3"><MessagePreview now={Date.parse(snapshot!.scannedAt)} summary={file.message} path={file.path} revision={file.revision??`${file.size}:${lastWrite(file,snapshot!.scannedAt)}`} request={request}/></td><td className="px-2 whitespace-nowrap"><time dateTime={lastWrite(file,snapshot!.scannedAt)} title={localTime(lastWrite(file,snapshot!.scannedAt))}>{rowTime(lastWrite(file,snapshot!.scannedAt),Date.parse(snapshot!.scannedAt))}</time>{!recentTime(lastWrite(file,snapshot!.scannedAt),Date.parse(snapshot!.scannedAt))&&<span className="block text-muted">{age(file.age)} ago</span>}</td><td className="p-3 text-right font-mono">{size(file.size)}</td></>}
+          {!table&&<time className="mt-2 block text-[11px] text-muted" dateTime={lastWrite(file,snapshot!.scannedAt)}>File touched {rowTime(lastWrite(file,snapshot!.scannedAt),Date.parse(snapshot!.scannedAt))}</time>}
+        </td>{table&&<><td className="px-2 text-muted">{shortProject(file.project)}</td><td className={`freshness ${file.class} px-2 capitalize`}>{file.class}</td><td className="px-2 text-muted">{eventLabel(file)}</td><td className="px-3"><MessagePreview now={Date.parse(snapshot!.scannedAt)} summary={file.message} path={file.path} revision={file.revision??`${file.size}:${lastWrite(file,snapshot!.scannedAt)}`} request={request}/></td><td className="px-2 whitespace-nowrap"><time dateTime={lastWrite(file,snapshot!.scannedAt)}>{rowTime(lastWrite(file,snapshot!.scannedAt),Date.parse(snapshot!.scannedAt))}</time></td><td className="p-3 text-right font-mono">{size(file.size)}</td></>}
       </tr>)}</tbody></table>
     </div>
     <p id="empty" hidden={!snapshot||files.length>0} className="my-8 text-center text-sm text-muted">No matching sessions. Choose All messages or clear your search.</p>
