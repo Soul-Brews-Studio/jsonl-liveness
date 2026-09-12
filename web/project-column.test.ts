@@ -10,9 +10,9 @@ test("overview keeps the original combined identity and extra columns are option
   }));
   for(const label of ["Project / session ID"])expect(html).toContain(">"+label+"</th>");
   expect(html).toContain("Show project path");
-  expect(html).toContain("Show IDs");
+  expect(html).toContain("Show session ID");
   expect(html).not.toContain(">Session ID</th>");
-  expect(html).not.toContain(">Agent ID</th>");
+  expect(html).toContain(">Agent ID</th>");
   expect(html).toContain("session-overview w-full text-left text-xs");
   expect(html).not.toContain('>Project path</th>');
   expect(html).not.toContain('checked=""');
@@ -32,4 +32,18 @@ test("selection has a text label and does not retain the arrival fill",async()=>
   }));
   expect(html).toContain(">Selected</span>");
   expect(html).not.toContain('data-new="true"');
+});
+
+test("agent column shows the full ID while preserving the original first field",()=>{
+ const id="agent-aecfc610d4e8302b7";
+ const file={path:`/demo/subagents/${id}.jsonl`,project:"/demo/neo-oracle",projectSource:"cwd" as const,tier:"subagent" as const,class:"hot" as const,age:0,size:0};
+ const html=renderToStaticMarkup(createElement(SessionList,{
+  selected:"",onSelect:()=>{},paused:false,busy:false,onPause:()=>{},onRefresh:()=>{},table:true,request:async()=>({}),
+  snapshot:{scannedAt:new Date().toISOString(),scanMs:0,counts:{hot:1,warm:0,cool:0,dead:0},errors:[],files:[file]}
+ }));
+ expect(html).toContain(">Project / session ID</th>");
+ expect(html).toContain(">Agent ID</th>");
+ expect(html).toContain("Recorded cwd: /demo/neo-oracle");
+ expect(html.split(id).length).toBeGreaterThanOrEqual(4);
+ expect(html).toContain(`>${id}</td>`);
 });
