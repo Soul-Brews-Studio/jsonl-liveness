@@ -98,3 +98,21 @@ tr[data-new=true] .arrival-badge {animation:arrival-badge 1.5s ease-in-out;}
 .session-overview td:first-child {min-width:11rem;}
 
 .session-overview .message-cell {min-width:20rem;}
+
+/* Project-label colors stay independent of selection and freshness. */
+:root {
+  --project-0:#e9b5ff;--project-1:#8edce3;--project-2:#b8d98a;--project-3:#ffbd9f;
+  --project-4:#a6c8ff;--project-5:#ffb5d5;--project-6:#e6d085;--project-7:#99dec0;
+}
+:root[data-theme=paper] {
+  --project-0:#69418c;--project-1:#17606b;--project-2:#426023;--project-3:#894326;
+  --project-4:#365a8c;--project-5:#8a3b64;--project-6:#6a570a;--project-7:#21634c;
+}
+.session-button.project-color-0 {color:var(--project-0);}
+.session-button.project-color-1 {color:var(--project-1);}
+.session-button.project-color-2 {color:var(--project-2);}
+.session-button.project-color-3 {color:var(--project-3);}
+.session-button.project-color-4 {color:var(--project-4);}
+.session-button.project-color-5 {color:var(--project-5);}
+.session-button.project-color-6 {color:var(--project-6);}
+.session-button.project-color-7 {color:var(--project-7);}

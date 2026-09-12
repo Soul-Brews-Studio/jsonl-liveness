@@ -1,3 +1,4 @@
+import { projectColor } from "../project-color";
 import { sessionIdentity } from "../session-identity";
 import { latestMessages, openLabel } from "../../session-status";
 import { useEffect, useRef, useState } from "react";
@@ -39,7 +40,7 @@ export function SessionList({snapshot,selected,onSelect,paused,busy,onPause,onRe
       <table className={`session-overview w-full text-left text-xs ${table?"min-w-[1000px]":"table-fixed"}`}><thead className="sticky top-0 z-10 bg-panel"><tr><th className="p-3">Project / session ID</th>{showIDs&&<th className="p-3">Session ID</th>}<th className="p-3">Agent ID</th>{table&&<>{showProject&&<th className="p-3">Project path</th>}<th className="p-3">File freshness</th><th className="p-3">Last event</th><th className="p-3">Latest message</th><th className="p-3" title="Filesystem timestamp: may be a heartbeat, not a new message">File touched</th><th className="pr-3 text-right">Size</th></>}</tr></thead>
       <tbody id="rows">{files.slice(start,start+50).map(file=><tr key={file.path} data-selected={selected===file.path} data-new={fresh.has(file.path)||undefined} className="session-row cursor-pointer border-t border-line" onClick={()=>onSelect(file)}>
         <td className="p-3">
-          <button className="session-button w-full break-words border-0 bg-transparent p-0 text-left font-semibold" data-session-path={file.path} aria-pressed={selected===file.path} title={file.project} onClick={e=>{e.stopPropagation();onSelect(file);}}>{file.project.split("/").filter(Boolean).at(-1)}</button>
+          <button className={`session-button ${projectColor(file.project)} w-full break-words border-0 bg-transparent p-0 text-left font-semibold`} data-session-path={file.path} aria-pressed={selected===file.path} title={file.project} onClick={e=>{e.stopPropagation();onSelect(file);}}>{file.project.split("/").filter(Boolean).at(-1)}</button>
           <span className="mt-1 block font-mono text-xs">{file.name||fullID(file)}</span>
           <span className="mt-1 block text-xs text-muted">{fresh.has(file.path)&&<span className="arrival-badge text-accent">New · </span>}{openLabel(file)} · {file.tier}</span>
           <span className="mt-1 block break-words text-[11px] text-muted">{file.projectSource==="cwd"?"Recorded cwd: ":"Estimated: "}{file.project}</span>
